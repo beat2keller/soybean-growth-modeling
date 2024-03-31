@@ -63,6 +63,6 @@ dynamic_scal <- c(soyFix[3], rep(0, 1))
 dynamic_vector <- append(dynamic_Asym, c(dynamic_xmid, dynamic_scal))
 #final model, takes a while 20 min +
 fm6.2Soy.nlme <- update(fm1Soy.nlme, fixed = list(Asym ~ genotype.id*avg_Temperature_28  , xmid ~ avg_Temperature_28 + avg_precipitation_28 , scal ~  avg_Temperature_28  ), start = dynamic_vector, control = list (msVerbose = TRUE,  maxIter = 200))
-save(fm6.2Soy.nlme, file=paste0("final_model_.nlme.RData"))
+save(fm6.2Soy.nlme, file=paste0("final_model_nlme.RData"))
 
 
