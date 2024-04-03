@@ -19,8 +19,9 @@ PhenoWeatherData$Sowing_to_Measure <- PhenoWeatherData$WeatherValue-PhenoWeather
 PhenoWeatherData <- PhenoWeatherData[order(PhenoWeatherData$Date),]
 # calculate new measures : still unclear
 PhenoWeatherData <- data.table(PhenoWeatherData)
-PhenoWeatherData <- PhenoWeatherData[,list(Sowing_to_Measure=mean(Sowing_to_Measure, na.rm=T), Measure_7=mean(Measure_7, na.rm=T), Measure_14=mean(Measure_14, na.rm=T), Measure_56=mean(Measure_56, na.rm=T), Measure_28=mean(Measure_28, na.rm=T)), by=.(Filename,genotype.name,genotype.id,Year,Location,year_site.UID,plot_number,plot.UID,plot_grouped,range,row,Date,value,variable,variable.1,WeatherVariable,WeatherCalcVar,date_of_sowing)]
-PhenoWeatherData_cast <- dcast.data.table(PhenoWeatherData, Filename+genotype.name+genotype.id+Year+Location+year_site.UID+plot_number+plot.UID+plot_grouped+range+row+Date+value+variable+variable.1+date_of_sowing~WeatherVariable, value.var=c("Sowing_to_Measure","Measure_7","Measure_14","Measure_56","Measure_28")) # ~WeatherVariable+WeatherCalcVar
+# commented out on 2.4 based on changes made in the original repo: PhenoWeatherData <- PhenoWeatherData[,list(Sowing_to_Measure=mean(Sowing_to_Measure, na.rm=T), Measure_7=mean(Measure_7, na.rm=T), Measure_14=mean(Measure_14, na.rm=T), Measure_56=mean(Measure_56, na.rm=T), Measure_28=mean(Measure_28, na.rm=T)), by=.(Filename,genotype.name,genotype.id,Year,Location,year_site.UID,plot_number,plot.UID,plot_grouped,range,row,Date,value,variable,variable.1,WeatherVariable,WeatherCalcVar,date_of_sowing)]
+PhenoWeatherData_cast <- dcast.data.table(PhenoWeatherData, Filename+genotype.name+genotype.id+Year+Location+year_site.UID+plot_number+plot.UID+plot_grouped+range+row+Date+value+variable+variable.1+Period+date_of_sowing+platform~WeatherVariable, value.var=c("Sowing_to_Measure","Measure_7","Measure_14","Measure_56","Measure_28")) # ~WeatherVariable+WeatherCalcVar
+
 
 # make changes that were made in the original modelling file -----
 
@@ -42,7 +43,7 @@ model_df$range <- PhenoWeatherData_cast$range
 model_df$row <- PhenoWeatherData_cast$row
 model_df$Filename <- PhenoWeatherData_cast$Filename
 model_df$Location <- PhenoWeatherData_cast$Location
-
+model_df$platform = PhenoWeatherData_cast$platform
 # type conversiion
 model_df$year          <- ordered(as.numeric(model_df$year))
 model_df$genotype.id   <- as.factor(model_df$genotype.id)

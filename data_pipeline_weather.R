@@ -7,12 +7,12 @@ weather <- data.table::fread("data/Weather_imputed.csv")
 # Split the df into two for better manipulation 
 df_w_radiation  = subset(weather,WeatherVariable=="Radiation")
 df_w_radiation$value[df_w_radiation$value>800] <- 800 # impose a cap on radiation
-df_w_radiation$WeatherVariable <- "RadiationSqrt" # rename variable
+df_w_radiation$WeatherVariable <- "RadiationCap" # rename variable
 weather <- rbind(weather, df_w_radiation)
 
 df_w_temperature <- subset(weather,WeatherVariable=="Temperature")
 df_w_temperature$value <- df_w_temperature$value*df_w_temperature$value # make phototermal variable
-df_w_temperature$WeatherVariable <- "PhotoSqrtThermal"
+df_w_temperature$WeatherVariable <- "PhotoThermalCap"
 weather <- rbind(weather, df_w_temperature)
 
 
@@ -33,9 +33,9 @@ weather = weather[!is.na(weather$value),]
 weather$Date <- as.Date(weather$DateTime)
 
 
-# Group data and calculate mean and sd, use two dfs for faster computation-----
-Weather_data_1 <- subset(weather,WeatherVariable!="Precipitation")[, list(dailymean=mean(value, na.rm = T),dailySD=sd(value, na.rm = T)), by=.(Date, Location, WeatherVariable, Imputed) ]
-Weather_data_2 <- subset(weather,WeatherVariable=="Precipitation")[, list(dailymean=sum(value, na.rm = T),dailySD=sd(value, na.rm = T)), by=.(Date, Location, WeatherVariable, Imputed) ]
+# Group data and calculate mean and sd, use two dfs for different computation-----
+Weather_data_Melt1 <- subset(weather,WeatherVariable!="Precipitation")[, list(dailymean=mean(value, na.rm = T),dailySD=sd(value, na.rm = T)), by=.(Date, Location, WeatherVariable) ] #, Imputed
+Weather_data_Melt2 <- subset(weather,WeatherVariable=="Precipitation")[, list(dailymean=sum(value, na.rm = T),dailySD=sd(value, na.rm = T)), by=.(Date, Location, WeatherVariable) ] #, Imputed
 
 
 
@@ -59,3 +59,4 @@ Weather_data_Melt_cumulative <- Weather_data_Melt_cumulative[!is.na(Weather_data
 
 # save df -------
 write.csv(Weather_data_Melt_cumulative, "data/weather_data_for_modelling.csv")
+

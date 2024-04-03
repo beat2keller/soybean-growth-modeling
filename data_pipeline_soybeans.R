@@ -18,7 +18,7 @@ soybeans = subset(soybeans_FIP_UAV, Period=="Growth" &  variable == "Canopy_cove
 soybeans = unique(soybeans)
 soybeans = soybeans[!is.na(soybeans$value),]
 soybeans = soybeans[!is.na(soybeans$genotype.id),]
-soybeans <- soybeans[,c("Filename","genotype.name","genotype.id","plot.UID","range","row","Time","location","year_site.UID" ,"date","variable","Period","time_since_sowing","date_of_sowing","value")]
+soybeans <- soybeans[,c("Filename","genotype.name","genotype.id","plot.UID","range","row","Time","location","year_site.UID" ,"date","variable","Period","time_since_sowing","date_of_sowing","platform", "value")]
 
 soybeans[soybeans$value < 0,]$value = 0 # do not allow negative CC
 # order the df
