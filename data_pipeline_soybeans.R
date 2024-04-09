@@ -7,6 +7,30 @@ library(tidyverse)
 #load data ---------
 soybeans_FIP_UAV <- fread("data/soybean_pixels_data.csv")
 
+
+# New classification of growth and senescence period:
+# to account for the fact that the maximum canopy cover might not be the actual end of the growth phase,
+# but occur after a long fluctuation, we take the max value of the first long continuous growth period as end of growth.
+# Therefore, we check in the neighbourhood of the max value if there was a decline. 
+# If so, this indicates fluctuation and we take the max vale before the fluctuation as end of growth.
+
+for (id in unique(soybeans_FIP_UAV$plot.UID)) {
+  subs = subset(soybeans_FIP_UAV, plot.UID == id)
+  max = which(subs$Canopy_cover == max(subs$Canopy_cover)) # find the index of the maximum value
+  c_max = min(which(subs$Canopy_cover > max(subs$Canopy_cover)-0.02))  # find the minimum index with a canopy cover close to the maximum (0.02 under)
+  rel = max(subs$Canopy_cover) # store the maximum value
+  if (max > c_max) {
+    for (i in c_max:(max-1)) {
+      if (subs$Canopy_cover[i] > subs$Canopy_cover[i+1]) { # check if there is a decline closely before the max is reached (indication for fluctuation)
+        rel = subs$Canopy_cover[i] # if so, take the maximum value before the decline as the end of growth
+        break } } }
+  growth_end = which(subs$Canopy_cover==rel) # define the index of the end of growth
+  for (i in 1:nrow(subs)) {  # define the observations before end of growth as "Growth" and after as "Senescence"
+    if (i <= growth_end) {soybeans_FIP_UAV[soybeans_FIP_UAV[,"plot.UID"] == id, "Period"][i,]  = "Growth"}
+    if (i > growth_end) {soybeans_FIP_UAV[soybeans_FIP_UAV[,"plot.UID"] == id, "Period"][i,] = "Senescence"}
+  }
+}
+
 # rename variables
 colnames(soybeans_FIP_UAV)[colnames(soybeans_FIP_UAV) == "plot.range"] <- "range"
 colnames(soybeans_FIP_UAV)[colnames(soybeans_FIP_UAV) == "plot.row"] <- "row"
