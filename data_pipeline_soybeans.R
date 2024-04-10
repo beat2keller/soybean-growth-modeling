@@ -25,8 +25,8 @@ for (id in unique(soybeans_FIP_UAV$plot.UID)) {
         break } } }
   growth_end = which(subs$Canopy_cover==rel) # define the index of the end of growth
   for (i in 1:nrow(subs)) {  # define the observations before end of growth as "Growth" and after as "Senescence"
-    if (i <= growth_end) {soybeans_FIP_UAV[soybeans_FIP_UAV[,"plot.UID"] == id, "Period"][i,]  = "Growth"}
-    if (i > growth_end) {soybeans_FIP_UAV[soybeans_FIP_UAV[,"plot.UID"] == id, "Period"][i,] = "Senescence"}
+    if (i <= growth_end) {soybeans_FIP_UAV[which(soybeans_FIP_UAV[,"plot.UID"] == id), "Period"][i,]  = "Growth"}
+    if (i > growth_end) {soybeans_FIP_UAV[which(soybeans_FIP_UAV[,"plot.UID"] == id), "Period"][i,] = "Senescence"}
   }
 }
 
