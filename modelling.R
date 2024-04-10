@@ -1,3 +1,5 @@
+
+
 # this file fits the model
 # Packages
 library(nlme)
@@ -18,8 +20,6 @@ df <- droplevels(df)
 df$Filename <- NULL
 #transform outcome  
 df$value        <- asin(sqrt(df$value))
-
-
 
 
 
@@ -52,8 +52,7 @@ fm1Soy.lis <- nlsList( value ~ SSlogis(time_since_sowing, Asym, xmid, scal), dat
 
 # set controls s.t. method converges
 nlmeControl(msMaxIter = 5000, msVerbose = TRUE)
-fm1Soy.nlme <- nlme( fm1Soy.lis)
-#update nlme model 
+#update as nlme model 
 fm1Soy.nlme <- nlme( fm1Soy.lis , random = Asym + xmid ~ 1, weights = varPower())
 # vectors for starting values
 soyFix <- fixef( fm1Soy.nlme )
