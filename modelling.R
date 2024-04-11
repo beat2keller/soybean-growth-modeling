@@ -1,3 +1,5 @@
+
+
 # this file fits the model
 # Packages
 library(nlme)
@@ -28,8 +30,8 @@ df$value        <- asin(sqrt(df$value))
 
 
 
-#df$platform = NULL
-#df$X = NULL
+
+
 # grouped DF
 df <- groupedData(value ~ time_since_sowing | plot_grouped_global, data = df)
 # list object for later modelling
@@ -62,29 +64,9 @@ fm1Soy.lis <- nlsList( value ~ SSlogis(time_since_sowing, Asym, xmid, scal), dat
 
 # set controls s.t. method converges
 nlmeControl(msMaxIter = 5000, msVerbose = TRUE)
-fm1Soy.nlme <- nlme( fm1Soy.lis)
-#update nlme nlme 
-fm1Soy.nlme <- nlme( fm1Soy.lis , 
-                     random = Asym + xmid ~ 1, 
-                     control = list (msVerbose = TRUE,  maxIter = 1000, tolerance = 1e-4),
-                     weights = varPower())
-
-
-# helper model ----------
-soyFix <- fixef( fm1Soy.nlme )
-
-# Create vector with empty elements for starting values
-dynamic_Asym <- c(soyFix[1], rep(0, 2))
-dynamic_xmid <- c(soyFix[2], rep(0, (length(levels(df$genotype.id))+0)))
-dynamic_scal <- c(soyFix[3], rep(0, 1))
-dynamic_vector <- append(dynamic_Asym, c(dynamic_xmid, dynamic_scal))
-
-# Run the model
-fm3Soy.nlme <- update( fm1Soy.nlme, weights = varPower(),
-                       fixed = list(Asym ~ avg_Temperature_28+ avg_precipitation_28 , xmid ~ genotype.id+avg_Temperature_28, scal ~   avg_Temperature_28  ), start = dynamic_vector, control = list (msVerbose = F,  maxIter = 5000))
-
-
-# vectors for starting values -------
+#update as nlme model 
+fm1Soy.nlme <- nlme( fm1Soy.lis , random = Asym + xmid ~ 1, weights = varPower())
+# vectors for starting values
 soyFix <- fixef( fm1Soy.nlme )
 dynamic_Asym <- c(soyFix[1], rep(0, 2*(length(levels(df$genotype.id)))-1))
 dynamic_xmid <- c(soyFix[2], rep(0, 2))
