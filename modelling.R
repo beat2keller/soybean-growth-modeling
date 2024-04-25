@@ -64,17 +64,31 @@ fm1Soy.lis <- nlsList( value ~ SSlogis(time_since_sowing, Asym, xmid, scal), dat
 
 # set controls s.t. method converges
 nlmeControl(msMaxIter = 5000, msVerbose = TRUE)
-#update as nlme model 
-fm1Soy.nlme <- nlme( fm1Soy.lis , random = Asym + xmid ~ 1, weights = varPower())
+#update as nlme model with random effects only on Scal
+cc_rf_scal <- nlme( fm1Soy.lis , random = scal~ 1, weights = varPower())
 # vectors for starting values
-soyFix <- fixef( fm1Soy.nlme )
-dynamic_Asym <- c(soyFix[1], rep(0, 2*(length(levels(df$genotype.id)))-1))
-dynamic_xmid <- c(soyFix[2], rep(0, 2))
-dynamic_scal <- c(soyFix[3], rep(0, 1))
+soyFix <- fixef(cc_rf_scal)
+
+
+no_genotypes = length(levels(df$genotype.id))
+dynamic_Asym = c(soyFix[1]) 
+dynamic_xmid = c(soyFix[2], rep(0,2))
+dynamic_scal <- c(soyFix[3], rep(0,3*no_genotypes-1))
+
 dynamic_vector <- append(dynamic_Asym, c(dynamic_xmid, dynamic_scal))
 #final model, takes a while 20 min +
 
-fm6.2Soy.nlme <- update(fm3Soy.nlme, fixed = list(Asym ~ genotype.id*avg_Temperature_28  , xmid ~ avg_Temperature_28 + avg_precipitation_28 , scal ~  avg_Temperature_28  ), start = dynamic_vector, control = list (msVerbose = TRUE,  maxIter = 5000))
-save(fm6.2Soy.nlme, file=paste0("final_model_nlme.RData"))
+start_time <- Sys.time()
+cc_rf_scal_14 <- update(cc_rf_scal, 
+                        fixed = list(Asym ~ 1,
+                                     xmid ~ avg_Temperature_14 + avg_precipitation_14 ,
+                                     scal ~  genotype.id*(avg_Temperature_14 + avg_precipitation_14)), 
+                        start = dynamic_vector, control = list (msVerbose = TRUE,  
+                                                                maxIter = 100, 
+                                                                msMaxIter = 100))
+end_time <- Sys.time()
+print(end_time-start_time)
 
+
+save(cc_rf_scal_14, file=paste0("cc_rf_scal_14.RData"))
 
