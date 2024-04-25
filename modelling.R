@@ -65,7 +65,7 @@ fm1Soy.lis <- nlsList( value ~ SSlogis(time_since_sowing, Asym, xmid, scal), dat
 # set controls s.t. method converges
 nlmeControl(msMaxIter = 5000, msVerbose = TRUE)
 #update as nlme model with random effects only on Scal
-cc_rf_scal <- nlme( fm1Soy.lis , random = scal~ 1, weights = varPower())
+cc_rf_scal <- nlme( fm1Soy.lis , random = Asym +scal~ 1, weights = varPower())
 # vectors for starting values
 soyFix <- fixef(cc_rf_scal)
 
@@ -82,7 +82,7 @@ start_time <- Sys.time()
 cc_rf_scal_14 <- update(cc_rf_scal, 
                         fixed = list(Asym ~ 1,
                                      xmid ~ avg_Temperature_14 + avg_precipitation_14 ,
-                                     scal ~  genotype.id*(avg_Temperature_14 + avg_precipitation_14)), 
+                                     scal ~  genotype.id*(avg_precipitation_14 + avg_radiation_14)), 
                         start = dynamic_vector, control = list (msVerbose = TRUE,  
                                                                 maxIter = 100, 
                                                                 msMaxIter = 100))
@@ -90,5 +90,5 @@ end_time <- Sys.time()
 print(end_time-start_time)
 
 
-save(cc_rf_scal_14, file=paste0("cc_rf_scal_14.RData"))
+save(cc_rf_scal_14, file=paste0("Asym_scal_14_xmid2_scal2.RData"))
 
