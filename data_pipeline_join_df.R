@@ -1,5 +1,9 @@
 # this file joins the weather with the soybean data for modelling. Creates model_data.csv
+# libraries
 library(data.table)
+library(dplyr)
+
+# load data
 weathter_data = fread("data/weather_data_for_modelling.csv")
 soybean_data = fread("data/soybean_data_for_modelling.csv")
 
@@ -56,10 +60,17 @@ model_df$avg_Temperature_56 <- (PhenoWeatherData_cast$Measure_56_Temperature)
 model_df$avg_Temperature_28 <- (PhenoWeatherData_cast$Measure_28_Temperature)
 model_df$avg_precipitation_56 <- (PhenoWeatherData_cast$Measure_56_Precipitation)
 model_df$avg_precipitation_28 <- (PhenoWeatherData_cast$Measure_28_Precipitation)
-model_df$avg_radiation_28 <- (PhenoWeatherData_cast$Measure_28_RadiationSqrt)
-model_df$avg_photothermal_14 <- (PhenoWeatherData_cast$Measure_28_PhotoSqrtThermal)
+model_df$avg_radiation_28 <- (PhenoWeatherData_cast$Measure_28_RadiationCap)
+model_df$avg_photothermal_28<- (PhenoWeatherData_cast$Measure_28_PhotoThermalCap)
 model_df$avg_vpd_28 <- (PhenoWeatherData_cast$Measure_28_VPD)
 model_df$avg_humidity_28 <- (PhenoWeatherData_cast$Measure_28_Humidity)
+
+model_df$avg_Temperature_14 <- (PhenoWeatherData_cast$Measure_14_Temperature)
+model_df$avg_precipitation_14 <- (PhenoWeatherData_cast$Measure_14_Precipitation)
+model_df$avg_radiation_14 <- (PhenoWeatherData_cast$Measure_14_RadiationCap)
+model_df$avg_photothermal_14<- (PhenoWeatherData_cast$Measure_14_PhotoThermalCap)
+model_df$avg_humidity_14 <- (PhenoWeatherData_cast$Measure_14_Humidity)
+model_df$avg_vpd_14 <- (PhenoWeatherData_cast$Measure_14_VPD)
 
 
 ###### add row per plot information
@@ -71,32 +82,17 @@ model_df <- model_df[!is.na(model_df$value),]
 model_df <- model_df[!is.nan(model_df$value),]
 model_df <- model_df[!is.na(model_df$genotype.id),]
 
-###### create new grouping. up for changing
-setDT(model_df)[,length(unique(UID)),by=plot_grouped]
+
+
+#### new grouping ----------
 df_for_grouping = model_df[,c("range","row","year_site.UID")]
 df_for_grouping = unique(df_for_grouping)
 df_for_grouping <- df_for_grouping[order(df_for_grouping$year_site.UID,df_for_grouping$row, df_for_grouping$range),]
-df_for_grouping$row_reduced <- round((df_for_grouping$row+2)/4, digits = 0)*4
-df_for_grouping$range_reduced <- round((df_for_grouping$range+1)/2, digits = 0)*2
-# MISTAKE here 
-df_for_grouping$plot_grouped_global <-  df_for_grouping$row_reduced * df_for_grouping$range_reduced
+df_for_grouping <- df_for_grouping %>%
+  mutate(plot_grouped_global = paste0(year_site.UID, "_", ceiling(row/ 6 ), "_", ceiling(range/ 2)))
+print(paste0("Number of groups: ", length(unique(df_for_grouping$plot_grouped_global))))
+df <- merge(df_for_grouping, model_df,by=c("range","row","year_site.UID"))
 
-# unclear definitions of the global 
-df_for_grouping[,plot_grouped_sum:=max(plot_grouped_global),by=.(range,year_site.UID)]
-df_for_grouping <- df_for_grouping[order(df_for_grouping$year_site.UID,df_for_grouping$plot_grouped_sum),]
-df_for_grouping2 <- df_for_grouping
-df_for_grouping <- df_for_grouping[,c("plot_grouped_sum","year_site.UID")]
-df_for_grouping <- unique(df_for_grouping)
-df_for_grouping$plot_grouped_sum_overall <- cumsum(df_for_grouping$plot_grouped_sum)
-df_for_grouping$plot_grouped_sum_overall <- shift(df_for_grouping$plot_grouped_sum_overall,fill=0)
-
-df_for_grouping3 <- merge(df_for_grouping2,df_for_grouping,by=c("year_site.UID","plot_grouped_sum"))
-df_for_grouping3$plot_grouped_global <- df_for_grouping3$plot_grouped_sum_overall+df_for_grouping3$plot_grouped_global
-
-df <- merge(df_for_grouping3, model_df,by=c("range","row","year_site.UID"))
-df$plot_grouped_global <- ordered(as.factor(df$plot_grouped_global))
-
-levels(df$plot_grouped_global) <- as.character(seq_along(levels(df$plot_grouped_global)))
 # save file -----
 
 write.csv(df, "data/model_data.csv")
