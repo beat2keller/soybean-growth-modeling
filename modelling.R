@@ -14,7 +14,7 @@ df = read.csv("data/model_data.csv")
 
 
 ########model for either subset###############
-df = subset(df,  year %in% c(2019, 2021, 2022))
+#df = subset(df,  year %in% c(2019, 2021, 2022))
 ##################################################
 
 
@@ -90,5 +90,5 @@ end_time <- Sys.time()
 print(end_time-start_time)
 
 
-save(cc_rf_scal_14, file=paste0("Asym_scal_14_xmid2_scal2_2019_2022.RData"))
+save(cc_rf_scal_14, file=paste0("Asym_scal_14_xmid2_scal2.RData"))
 
