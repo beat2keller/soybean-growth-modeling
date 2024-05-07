@@ -19,7 +19,7 @@ df = read.csv("data/model_data.csv")
 
 
 # restore factor variables lost due to saving 
-df$genotype.id   <- as.factor(df$genotype.id)
+df$genotype.id   <- as.factor(df$genotype.id) 
 df$plot_grouped_global   <- ordered(as.factor(df$plot_grouped_global))
 #prepear grouping
 df <- as.data.frame(df)
