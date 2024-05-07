@@ -13,13 +13,13 @@ library(data.table)
 df = read.csv("data/model_data.csv")
 
 
-########model for either UAV or FIP###############
-#df = subset(df, platform =="FIP")
+########model for either subset###############
+#df = subset(df,  year %in% c(2019, 2021, 2022))
 ##################################################
 
 
 # restore factor variables lost due to saving 
-df$genotype.id   <- as.factor(df$genotype.id)
+df$genotype.id   <- as.factor(df$genotype.id) 
 df$plot_grouped_global   <- ordered(as.factor(df$plot_grouped_global))
 #prepear grouping
 df <- as.data.frame(df)
