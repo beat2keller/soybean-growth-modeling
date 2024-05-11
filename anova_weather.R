@@ -73,25 +73,33 @@ soyFix <- fixef(cc_rf_scal)
 
 no_genotypes = length(levels(df$genotype.id))
 dynamic_Asym = c(soyFix[1], rep(0,1*no_genotypes-1)) 
-dynamic_xmid = c(soyFix[2], rep(0,2))
-dynamic_scal <- c(soyFix[3], rep(0,3*no_genotypes-1))
+dynamic_xmid = c(soyFix[2])
+dynamic_scal <- c(soyFix[3], rep(0,1*no_genotypes-1))
 
 dynamic_vector <- append(dynamic_Asym, c(dynamic_xmid, dynamic_scal))
 #final model, takes a while 20 min +
 
 start_time <- Sys.time()
 
-cc_rf_scal_14 <- update(cc_rf_scal, 
+comp_model <- update(cc_rf_scal, 
                         fixed = list(Asym ~ genotype.id,
-                                     xmid ~avg_Temperature_14 + avg_precipitation_14 ,
-                                     scal ~  genotype.id*(avg_precipitation_14 + avg_radiation_14)), 
+                                     xmid ~ 1,
+                                     scal ~  genotype.id), 
                         start = dynamic_vector, control = list (msVerbose = TRUE,  
                                                                 maxIter = 100, 
                                                                 msMaxIter = 100))
 end_time <- Sys.time()
 print(end_time-start_time)
 
+save(comp_model, file=paste0("model_wo_weather.RData"))
+load("Asy_xmid_14_asym1_xmid2_scal3.RData")
+load("model_wo_weather.RData")
 
+no_geno = cc_rf_scal
+only_geno = comp_model
+final_model = cc_rf_scal_14
+anova(no_geno, only_geno)
+anova(no_geno, final_model)
+anova(only_geno, final_model)
 
-save(cc_rf_scal_14, file=paste0("Asy_xmid_14_asym1_xmid2_scal3.RData"))
 
