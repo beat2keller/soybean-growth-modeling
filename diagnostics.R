@@ -1,13 +1,13 @@
 # load model
-load("Asy_xmid_14_asym1_xmid2_scal3.RData")
-model1 <- cc_rf_scal_14
-rf1 <- nlme::random.effects(model1)
+load("model/Asy_xmid_14_asym1_xmid2_scal3.RData")
+model <- 'insert here the model name'
+rf1 <- nlme::random.effects(model)
 revert_transformation <- Vectorize(function(x){
   sin(x)^2
 })
 
 # Plot fitted values vs r
-plot(model1,
+plot(model,
      resid(.) ~ revert_transformation(fitted(.)),
      type = c("p", "smooth"),
      col.line = 1,
@@ -18,8 +18,8 @@ plot(model1,
 # QQ plots
 par(mfrow = c(1, 1))
 
-qqnorm(y = residuals(model1), main = "QQ Plot of Residuals")
-qqline(residuals(model1))
+qqnorm(y = residuals(model), main = "QQ Plot of Residuals")
+qqline(residuals(model), probs = c(0.01, .99))
 
 # Normal distribution of random effects
 par(mfrow = c(1, 2))

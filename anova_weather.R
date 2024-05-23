@@ -13,16 +13,10 @@ library(data.table)
 df = read.csv("data/model_data.csv")
 
 
-########model for either subset###############
-#df = subset(df,  year %in% c(2019, 2021, 2022))
-#df = subset(df, genotype.id %in% c(10002,10003))
-##################################################
-
-
 # restore factor variables lost due to saving 
 df$genotype.id   <- as.factor(df$genotype.id) 
 df$plot_grouped_global   <- ordered(as.factor(df$plot_grouped_global))
-#prepear grouping
+#prepare grouping
 df <- as.data.frame(df)
 df <- droplevels(df)
 df$Filename <- NULL

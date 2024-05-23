@@ -9,11 +9,13 @@ revert_transformation <- Vectorize(function(x){
   sin(x)^2
 })
 
+model = 'insert here model name'
+
 par(mfrow = c(2, 2))
 for (i in 1:length(genos)) {
   df_sub <- df_p[df_p$genotype.id == genos[i], ]
   plot(df_sub$time_since_sowing, 
-       y = revert_transformation(predict(cc_rf_scal_14, df_sub)), 
+       y = revert_transformation(predict(model, df_sub)), 
        col = "red",
        xlab = "Time Since Sowing",
        ylab = "Fitted Values with random effects",
@@ -29,7 +31,7 @@ for (i in 1:length(genos)) {
 for (i in 1:length(genos)) {
   df_sub <- df_p[df_p$genotype.id == genos[i], ]
   plot(df_sub$time_since_sowing, 
-       y = revert_transformation(predict(cc_rf_scal_14, df_sub, level = 0)), 
+       y = revert_transformation(predict(model, df_sub, level = 0)), 
        col = "red",
        xlab = "Time Since Sowing",
        ylab = "Fitted Values without random effects",

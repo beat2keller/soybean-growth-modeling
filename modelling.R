@@ -13,16 +13,11 @@ library(data.table)
 df = read.csv("data/model_data.csv")
 
 
-########model for either subset###############
-#df = subset(df,  year %in% c(2019, 2021, 2022))
-#df = subset(df, genotype.id %in% c(10002,10003))
-##################################################
-
 
 # restore factor variables lost due to saving 
 df$genotype.id   <- as.factor(df$genotype.id) 
 df$plot_grouped_global   <- ordered(as.factor(df$plot_grouped_global))
-#prepear grouping
+#prepare grouping
 df <- as.data.frame(df)
 df <- droplevels(df)
 df$Filename <- NULL
@@ -81,7 +76,7 @@ dynamic_vector <- append(dynamic_Asym, c(dynamic_xmid, dynamic_scal))
 
 start_time <- Sys.time()
 
-cc_rf_scal_14 <- update(cc_rf_scal, 
+model <- update(cc_rf_scal, 
                         fixed = list(Asym ~ genotype.id,
                                      xmid ~avg_Temperature_14 + avg_precipitation_14 ,
                                      scal ~  genotype.id*(avg_precipitation_14 + avg_radiation_14)), 
@@ -93,5 +88,5 @@ print(end_time-start_time)
 
 
 
-save(cc_rf_scal_14, file=paste0("Asy_xmid_14_asym1_xmid2_scal3.RData"))
+save(model, file=paste0("Asy_xmid_14_asym1_xmid2_scal3.RData"))
 
