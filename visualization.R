@@ -34,32 +34,32 @@ vis4net10 <- c('#00758d', '#5c8f84', '#8aa97a', '#b1c56d', '#d7e25b', '#feb5cd',
 
 ###
 
-load(paste0("/home/kellebea/cluster/SoySeg/baseline_nlme_v2.2.RData"))
-Model0.1 <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/baseline2_nlme_v2.2.RData"))
-Model0.2 <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/baseline2.1_nlme_v2.2.RData"))
-Model0.2.1 <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/baseline3_nlme_v2.2.RData"))
-Model0.3 <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/baseline4_nlme_v2.2.RData"))
-Model0.4 <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/baseline5_nlme_v2.2.RData"))
-Model0.5 <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/baseline6_nlme_v2.2.RData"))
-Model0.6 <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/baseline7_nlme_v2.2.RData"))
-Model0.7 <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/baseline8_nlme_v2.2.RData"))
-Model0.8 <- model
+# load(paste0("/home/kellebea/cluster/SoySeg/baseline_nlme_v2.2.RData"))
+# Model0.1 <- model
+# 
+# load(paste0("/home/kellebea/cluster/SoySeg/baseline2_nlme_v2.2.RData"))
+# Model0.2 <- model
+# 
+# load(paste0("/home/kellebea/cluster/SoySeg/baseline2.1_nlme_v2.2.RData"))
+# Model0.2.1 <- model
+# 
+# load(paste0("/home/kellebea/cluster/SoySeg/baseline3_nlme_v2.2.RData"))
+# Model0.3 <- model
+# 
+# load(paste0("/home/kellebea/cluster/SoySeg/baseline4_nlme_v2.2.RData"))
+# Model0.4 <- model
+# 
+# load(paste0("/home/kellebea/cluster/SoySeg/baseline5_nlme_v2.2.RData"))
+# Model0.5 <- model
+# 
+# load(paste0("/home/kellebea/cluster/SoySeg/baseline6_nlme_v2.2.RData"))
+# Model0.6 <- model
+# 
+# load(paste0("/home/kellebea/cluster/SoySeg/baseline7_nlme_v2.2.RData"))
+# Model0.7 <- model
+# 
+# load(paste0("/home/kellebea/cluster/SoySeg/baseline8_nlme_v2.2.RData"))
+# Model0.8 <- model
 
 load(paste0("/home/kellebea/cluster/SoySeg/baseline9_nlme_v2.2.RData"))
 Model0 <- model

@@ -516,30 +516,12 @@ dynamic_vector <- append(dynamic_Asym, c(dynamic_xmid, dynamic_scal))
 # 
 # 
 # ##
-# start_time <- Sys.time()
-# 
-# model <- update(cc_rf_scal,
-#                 fixed = list(Asym ~ genotype.id+platform,
-#                              xmid ~ avg_temperature_14 + avg_precipitation_14 + avg_radiation_14,
-#                              scal ~ genotype.id*(avg_precipitation_14+avg_radiation_14)+platform),
-#                 start = dynamic_vector, control = list (msVerbose = TRUE,
-#                                                         maxIter = 100,
-#                                                         msMaxIter = 100))
-# end_time <- Sys.time()
-# print(end_time-start_time)
-# 
-# 
-# save(model, file="avg_precipitation_radiation_14_nlme_v2.1.RData")
-# 
-# 
-# 
-# ##
 start_time <- Sys.time()
 
 model <- update(cc_rf_scal,
                 fixed = list(Asym ~ genotype.id+platform,
                              xmid ~ avg_temperature_14 + avg_precipitation_14 + avg_radiation_14,
-                             scal ~ genotype.id*(avg_precipitation_14+avg_photothermal_14)+platform),
+                             scal ~ genotype.id*(avg_precipitation_14+avg_radiation_14)+platform),
                 start = dynamic_vector, control = list (msVerbose = TRUE,
                                                         maxIter = 100,
                                                         msMaxIter = 100))
@@ -547,7 +529,25 @@ end_time <- Sys.time()
 print(end_time-start_time)
 
 
-save(model, file="avg_precipitation_photothermal_14_nlme_v2.1.RData")
+save(model, file="avg_precipitation_radiation_14_nlme_v2.1.RData")
+# 
+# 
+# 
+# ##
+# start_time <- Sys.time()
+# 
+# model <- update(cc_rf_scal,
+#                 fixed = list(Asym ~ genotype.id+platform,
+#                              xmid ~ avg_temperature_14 + avg_precipitation_14 + avg_radiation_14,
+#                              scal ~ genotype.id*(avg_precipitation_14+avg_photothermal_14)+platform),
+#                 start = dynamic_vector, control = list (msVerbose = TRUE,
+#                                                         maxIter = 100,
+#                                                         msMaxIter = 100))
+# end_time <- Sys.time()
+# print(end_time-start_time)
+# 
+# 
+# save(model, file="avg_precipitation_photothermal_14_nlme_v2.1.RData")
 # 
 # ##
 # 
