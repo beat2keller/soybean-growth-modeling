@@ -1,3 +1,5 @@
+setwd("~/public/Evaluation/Projects/KP0023_legumes/Scripts/canopy-cover-stats-lab/")
+
 # This pipeline uses soybean_pixels_data.csv to make a df that can be joined with the weather data
 # output is call soybean_data_for_modelling.csv
 # packages ---------
@@ -6,7 +8,7 @@ library(stringr)
 library(tidyverse)
 #load data ---------
 soybeans_FIP_UAV <- fread("data/soybean_pixels_data.csv")
-
+# soybeans_FIP_UAV <- subset(soybeans_FIP_UAV, Period=="Growth"&year_site.UID=="FPSB016")
 
 # New classification of growth and senescence period:
 # to account for the fact that the maximum canopy cover might not be the actual end of the growth phase,
@@ -14,22 +16,46 @@ soybeans_FIP_UAV <- fread("data/soybean_pixels_data.csv")
 # Therefore, we check in the neighbourhood of the max value if there was a decline. 
 # If so, this indicates fluctuation and we take the max vale before the fluctuation as end of growth.
 
-for (id in unique(soybeans_FIP_UAV$plot.UID)) {
-  subs = subset(soybeans_FIP_UAV, plot.UID == id)
-  max = which(subs$Canopy_cover == max(subs$Canopy_cover)) # find the index of the maximum value
-  c_max = min(which(subs$Canopy_cover > max(subs$Canopy_cover)-0.02))  # find the minimum index with a canopy cover close to the maximum (0.02 under)
-  rel = max(subs$Canopy_cover) # store the maximum value
-  if (max > c_max) {
-    for (i in c_max:(max-1)) {
-      if (subs$Canopy_cover[i] > subs$Canopy_cover[i+1]) { # check if there is a decline closely before the max is reached (indication for fluctuation)
-        rel = subs$Canopy_cover[i] # if so, take the maximum value before the decline as the end of growth
-        break } } }
-  growth_end = which(subs$Canopy_cover==rel) # define the index of the end of growth
-  for (i in 1:nrow(subs)) {  # define the observations before end of growth as "Growth" and after as "Senescence"
-    if (i <= growth_end) {soybeans_FIP_UAV[which(soybeans_FIP_UAV[,"plot.UID"] == id), "Period"][i,]  = "Growth"}
-    if (i > growth_end) {soybeans_FIP_UAV[which(soybeans_FIP_UAV[,"plot.UID"] == id), "Period"][i,] = "Senescence"}
-  }
-}
+soybeans_FIP_UAV <- soybeans_FIP_UAV[order(soybeans_FIP_UAV$date),]
+soybeans_FIP_UAV$id_platform <- paste0(soybeans_FIP_UAV$plot.UID) #,soybeans_FIP_UAV$platform
+
+
+# for (id in unique(soybeans_FIP_UAV$id_platform)) {
+#   subs = subset(soybeans_FIP_UAV, id_platform == id)
+#   max = which(subs$Canopy_cover == max(subs$Canopy_cover)) # find the index of the maximum value
+#   c_max = min(which(subs$Canopy_cover > max(subs$Canopy_cover)-0.02))  # find the minimum index with a canopy cover close to the maximum (0.02 under)
+#   rel = max(subs$Canopy_cover) # store the maximum value
+#   if (max > c_max) {
+#     for (i in c_max:(max-1)) {
+#       if (subs$Canopy_cover[i] > subs$Canopy_cover[i+1]) { # check if there is a decline closely before the max is reached (indication for fluctuation)
+#         rel = subs$Canopy_cover[i] # if so, take the maximum value before the decline as the end of growth
+#         break } } }
+#   growth_end = which(subs$Canopy_cover==rel) # define the index of the end of growth
+#   for (i in 1:nrow(subs)) {  # define the observations before end of growth as "Growth" and after as "Senescence"
+#     if (i <= growth_end) {soybeans_FIP_UAV[which(soybeans_FIP_UAV[,"plot.UID"] == id), "Period"][i,]  = "Growth"}
+#     if (i > growth_end) {soybeans_FIP_UAV[which(soybeans_FIP_UAV[,"plot.UID"] == id), "Period"][i,] = "Senescence"}
+#   }
+# }
+
+# for (id in unique(soybeans_FIP_UAV$id_platform )) {
+#   subs = subset(soybeans_FIP_UAV, id_platform==id)
+#   max = which(subs$Canopy_cover == max(subs$Canopy_cover))# find the index of the maximum value
+#   CmaxES <- (which(subs$Canopy_cover > max(subs$Canopy_cover)-0.02))
+#   c_min <- CmaxES[length(CmaxES)]# CmaxES[1]
+#   # lengthCmax <- length(CmaxES)-1
+#   # if (lengthCmax>1) {
+#   #   for (i in 1:lengthCmax) {
+#   #     ii <- CmaxES[i]
+#   #     if (subs$Canopy_cover[ii] < subs$Canopy_cover[ii+1]) {
+#   #       c_min = CmaxES[i+1]  }
+#   #   } }
+#   # 
+#     growth_end = c_min#which(subs$Canopy_cover==rel) # define the index of the end of growth
+#   for (i in 1:nrow(subs)) {  # define the observations before end of growth as "Growth" and after as "Senescence"
+#     if (i <= growth_end) {soybeans_FIP_UAV[which(soybeans_FIP_UAV[,"plot.UID"] == id), "Period"][i,]  = "Growth"}
+#     if (i > growth_end) {soybeans_FIP_UAV[which(soybeans_FIP_UAV[,"plot.UID"] == id), "Period"][i,] = "Senescence"}
+#   }
+# }
 
 # rename variables
 colnames(soybeans_FIP_UAV)[colnames(soybeans_FIP_UAV) == "plot.range"] <- "range"
@@ -37,7 +63,7 @@ colnames(soybeans_FIP_UAV)[colnames(soybeans_FIP_UAV) == "plot.row"] <- "row"
 soybeans_FIP_UAV$value <- soybeans_FIP_UAV$value_relative # this creates an additional column value that has the same entries
 colnames(soybeans_FIP_UAV)[colnames(soybeans_FIP_UAV) == "Date"] <- "date"
 # restrict to subsets of the data that are needed for the model
-soybeans = subset(soybeans_FIP_UAV, Period=="Growth" &  variable == "Canopy_cover")
+soybeans = subset(soybeans_FIP_UAV, variable == "Canopy_cover")
 # clean data 
 soybeans = unique(soybeans)
 soybeans = soybeans[!is.na(soybeans$value),]
@@ -58,11 +84,11 @@ soybeans$date <- as.Date(soybeans$date)
 soybeans$year = year(soybeans$date)
 
 
-# Change wrongly measured fields
-
-temp = soybeans[soybeans$year_site.UID=='FPSB006',]$range
-soybeans[soybeans$year_site.UID=='FPSB006',]$range = soybeans[soybeans$year_site.UID=='FPSB006',]$row
-soybeans[soybeans$year_site.UID=='FPSB006',]$row = temp
+# Change wrongly measured fields ## fixed
+# 
+# temp = soybeans[soybeans$year_site.UID=='FPSB006',]$range
+# soybeans[soybeans$year_site.UID=='FPSB006',]$range = soybeans[soybeans$year_site.UID=='FPSB006',]$row
+# soybeans[soybeans$year_site.UID=='FPSB006',]$row = temp
 
 
 # Spatial grouping -----
@@ -119,8 +145,18 @@ soybeans <- unique(soybeans)
 #pivot longer
 soybeans_melt = melt.data.table(soybeans, measure.vars = c("CC"))
 
+
+# sowing <- subset(soybeans_melt,variable.1=="CC")[!duplicated(plot.UID),]
+# sowing$Date <- as.Date(sowing$date_of_sowing)+5
+# sowing$time_since_sowing <- 5
+# sowing$value <- 0.0001
+# sowing$Filename <- NA
+# 
+# soybeans_melt <- rbind(soybeans_melt, sowing)
+
+
 # considering only the growth period, this pipelines returns the same data points as the data_aggregation_cc file from last year.
 # Nut without plotting, spatial_cc and other things unnecessary for the modelling
 
-write.csv(soybeans_melt, "data/soybean_data_for_modelling.csv")
+write.csv(soybeans_melt, "data/soybean_data_for_modelling.csv",row.names = F)
 
