@@ -14,44 +14,40 @@ library(ggplot2)
 library(data.table)
 # data "plot_grouped_global" is used for the grouping of the data
 
-load("Growth_data_nlme_v2.2.RData") 
+load("data/Growth_data.RData") 
 # 
 df$platform <- as.factor(df$platform)
 
 
-no_genotypes = length(levels(df$genotype.id))
-dynamic_Asym = c(soyFix[1], rep(0,1*no_genotypes))
-dynamic_xmid = c(soyFix[2], rep(0,3))
-dynamic_scal = c(soyFix[3], rep(0,3*no_genotypes))
+options(contrasts= c("contr.sum","contr.poly"))
 
-dynamic_vector <- append(dynamic_Asym, c(dynamic_xmid, dynamic_scal))
+###
+# no_genotypes = length(levels(df$genotype.id))
+# dynamic_Asym = c(soyFix[1], rep(0,1*no_genotypes))
+# dynamic_xmid = c(soyFix[2], rep(0,3))
+# dynamic_scal = c(soyFix[3], rep(0,2*no_genotypes+1))
 # 
+# dynamic_vector <- append(dynamic_Asym, c(dynamic_xmid, dynamic_scal))
 # 
-# # We change the option to the sum-to-zero constraint so the interactions 
-# # are deviations from the overall mean and not from a specific reference level
-# 
-# options(contrasts= c("contr.sum","contr.poly"))
-# 
-# # you can skip this by directly loading in the model below
+# ##
 # start_time <- Sys.time()
 # 
-# 
-# model_sumtozero <- update(cc_rf_scal,
-#                           fixed = list(Asym ~ genotype.id+platform,
-#                                        xmid ~ avg_temperature_14 + avg_precipitation_14 + avg_radiation_14,
-#                                        scal ~ genotype.id*(avg_precipitation_14+avg_radiation_14)+platform),
-#                           start = dynamic_vector, control = list (msVerbose = TRUE,
-#                                                                   maxIter = 100,
-#                                                                   msMaxIter = 100))
+# Growth6_E.GxPxPre_Contr.Sum <- update(cc_rf_scal,
+#                                       fixed = list(Asym ~ genotype.id+platform,
+#                                                    xmid ~ avg_temperature_14 + avg_precipitation_14 + avg_radiation_14,
+#                                                    scal ~ genotype.id:(avg_photothermal_14+avg_precipitation_14)+platform),
+#                                       start = dynamic_vector, control = list (msVerbose = TRUE,
+#                                                                               maxIter = 100,
+#                                                                               msMaxIter = 100))
 # end_time <- Sys.time()
+# print(end_time - start_time)
 # 
-# save(model_sumtozero, file=paste0("model/model_sumtozero.RData"))
-# print(end_time-start_time)
+# save(Growth6_E.GxPxPre_Contr.Sum, file=paste0("model/", Period, "6_E.GxPxPre_Contr.Sum.RData"))
 
 # this runs for up to 2 hours, you can also load it in here:
-load("model/model_sumtozero.RData")
+load("model/Growth6_E.GxPxPre_Contr.Sum.RData")
 
-ci <- data.frame(lower= intervals(model_sumtozero)$fixed[,1], est = intervals(model_sumtozero)$fixed[,2], upper = intervals(model_sumtozero)$fixed[,3])
+ci <- data.frame(lower= intervals(Growth6_E.GxPxPre_Contr.Sum)$fixed[,1], est = intervals(Growth6_E.GxPxPre_Contr.Sum)$fixed[,2], upper = intervals(Growth6_E.GxPxPre_Contr.Sum)$fixed[,3])
 ci$names <- rownames(ci)
 ci$interval <- ci$upper - ci$lower
 
@@ -84,13 +80,13 @@ indices <- grep("Asym.genotype.id", ci$names)
 # extract the estimates and confidence intervals per variable
 
 
-prec_main_effect <- ci$interval[grep("scal.avg_precipitation_14", ci$names)] # to be offset
-rad_main_effect <- ci$interval[grep("scal.avg_radiation_14", ci$names)] # to be offset
+prec_main_effect <- 0#ci$interval[grep("scal.avg_precipitation_14", ci$names)] # to be offset
+rad_main_effect <- 0#ci$interval[grep("scal.avg_photothermal_14", ci$names)] # to be offset
 
 
 prec_intervals <- ci$interval[grep("^scal\\.genotype\\.id[0-9]+:avg_precipitation_14$", ci$names)]
 quantile(prec_intervals)
-rad_intervals <- ci$interval[grep("^scal\\.genotype\\.id[0-9]+:avg_radiation_14$", ci$names)]
+rad_intervals <- ci$interval[grep("^scal\\.genotype\\.id[0-9]+:avg_photothermal_14$", ci$names)]
 quantile(rad_intervals)
 asym_intervals <- ci$interval[grep("Asym.genotype.id", ci$names)]
 quantile(asym_intervals)
@@ -98,7 +94,7 @@ scals_intervals <- ci$interval[grep("scal\\.genotype\\.id[^:]*$", ci$names)]
 quantile(scals_intervals)
 precs <- ci$est[grep("^scal\\.genotype\\.id[0-9]+:avg_precipitation_14$", ci$names)]
 quantile(precs)
-rad <- ci$est[grep("^scal\\.genotype\\.id[0-9]+:avg_radiation_14$", ci$names)]
+rad <- ci$est[grep("^scal\\.genotype\\.id[0-9]+:avg_photothermal_14$", ci$names)]
 scals <- ci$est[grep("scal\\.genotype\\.id[^:]*$", ci$names)]
 asym <- ci$est[grep("Asym.genotype.id", ci$names)]
 
@@ -133,8 +129,8 @@ for (i in 1:length(unique(df$genotype.id))) {
 }
 
 
-genotype_selection$sum = rowSums(genotype_selection[, 2:9]) 
-candidates = genotype_selection$genotype[genotype_selection$sum > 6] # get the genotypes fulfilling more than ... criteria
+genotype_selection$sum = rowSums(genotype_selection[, c(2:5,7,9)]) 
+candidates = genotype_selection$genotype[genotype_selection$sum > 5] # get the genotypes fulfilling more than ... criteria
 candidates <- candidates[!is.na(candidates)]
 candidates
 # Since the sum-to-zero constraint removes the genotype-id identification, we need
@@ -149,24 +145,22 @@ df$genotype.id <- relevel(df$genotype.id, ref= as.character(unique(df$genotype.i
 # start_time <- Sys.time()
 
 
-# model_baseline <- update(cc_rf_scal,
-#                           fixed = list(Asym ~ genotype.id+platform,
-#                                        xmid ~ avg_temperature_14 + avg_precipitation_14 + avg_radiation_14,
-#                                        scal ~ genotype.id*(avg_precipitation_14+avg_radiation_14)+platform),
-#                           start = dynamic_vector, control = list (msVerbose = TRUE,
-#                                                                   maxIter = 100,
-#                                                                   msMaxIter = 100))
-# 
-# 
+# Growth6_E.GxPxPre <- update(cc_rf_scal,
+#                                       fixed = list(Asym ~ genotype.id+platform,
+#                                                    xmid ~ avg_temperature_14 + avg_precipitation_14 + avg_radiation_14,
+#                                                    scal ~ genotype.id:(avg_photothermal_14+avg_precipitation_14)+platform),
+#                                       start = dynamic_vector, control = list (msVerbose = TRUE,
+#                                                                               maxIter = 100,
+#                                                                               msMaxIter = 100))
 # end_time <- Sys.time()
-# save(model_baseline, file="model/Asy_xmid_14_asym1_xmid2_scal3.RData")
-# print(end_time-start_time)
+# print(end_time - start_time)
+# 
+# save(Growth6_E.GxPxPre, file=paste0("model/", Period, "6_E.GxPxPre.RData"))
 
-# This runs again for up to 2 hours, you can load in the model from the gitlab repo:
-load("model/Asy_xmid_14_asym1_xmid2_scal3.RData")
-# model_baseline = cc_rf_scal_14 # align with naming in this file
+# this runs for up to 2 hours, you can also load it in here:
+load("model/Growth6_E.GxPxPre.RData")
 
-ci_baseline <- data.frame(lower= intervals(model_baseline)$fixed[,1], est = intervals(model_baseline)$fixed[,2], upper = intervals(model_baseline)$fixed[,3])
+ci_baseline <- data.frame(lower= intervals(Growth6_E.GxPxPre)$fixed[,1], est = intervals(Growth6_E.GxPxPre)$fixed[,2], upper = intervals(Growth6_E.GxPxPre)$fixed[,3])
 ci_baseline$names <- rownames(ci_baseline)
 
 # calculating the genotype-specific asymptote
@@ -183,7 +177,7 @@ for (i in 1:length(na.omit(candidates))) {
   candidate <- gsub("\\D", "", par_cand)
   candidate_genotypes = c(candidate_genotypes, candidate)
 }
-
+candidate_genotypes
 
 # This way, you obtain a list of ideal candidates
 # our ideal candidates are: 10004, 10009, 10014, 10015, 10018, 10020

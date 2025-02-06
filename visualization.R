@@ -1,4 +1,4 @@
-setwd("~/public/Evaluation/Projects/KP0023_legumes/Scripts/canopy-cover-stats-lab/")
+# setwd("~/public/Evaluation/Projects/KP0023_legumes/Scripts/canopy-cover-stats-lab/")
 
 ####
 
@@ -34,173 +34,86 @@ vis4net10 <- c('#00758d', '#5c8f84', '#8aa97a', '#b1c56d', '#d7e25b', '#feb5cd',
 
 ###
 
-# load(paste0("/home/kellebea/cluster/SoySeg/baseline_nlme_v2.2.RData"))
-# Model0.1 <- model
-# 
-# load(paste0("/home/kellebea/cluster/SoySeg/baseline2_nlme_v2.2.RData"))
-# Model0.2 <- model
-# 
-# load(paste0("/home/kellebea/cluster/SoySeg/baseline2.1_nlme_v2.2.RData"))
-# Model0.2.1 <- model
-# 
-# load(paste0("/home/kellebea/cluster/SoySeg/baseline3_nlme_v2.2.RData"))
-# Model0.3 <- model
-# 
-# load(paste0("/home/kellebea/cluster/SoySeg/baseline4_nlme_v2.2.RData"))
-# Model0.4 <- model
-# 
-# load(paste0("/home/kellebea/cluster/SoySeg/baseline5_nlme_v2.2.RData"))
-# Model0.5 <- model
-# 
-# load(paste0("/home/kellebea/cluster/SoySeg/baseline6_nlme_v2.2.RData"))
-# Model0.6 <- model
-# 
-# load(paste0("/home/kellebea/cluster/SoySeg/baseline7_nlme_v2.2.RData"))
-# Model0.7 <- model
-# 
-# load(paste0("/home/kellebea/cluster/SoySeg/baseline8_nlme_v2.2.RData"))
-# Model0.8 <- model
+load("model/Growth0_G.RData")
+load("model/Growth1_E.G.RData")
+load("model/Growth2_E.GxT.RData")
+load("model/Growth3_E.GxR.RData")
+load("model/Growth4_E.GxP.RData")
+load("model/Growth5_E.GxPre.RData")
+load("model/Growth6_E.GxPxPre.RData")
 
-load(paste0("/home/kellebea/cluster/SoySeg/baseline9_nlme_v2.2.RData"))
-Model0 <- model
-
-anova(Model0, Model0.1, Model0.2, Model0.2.1, Model0.3, Model0.4, Model0.5, Model0.6, Model0.7, Model0.8)
+anova_result_Gro <-anova(Growth0_G, Growth1_E.G, Growth2_E.GxT,  Growth3_E.GxR,  Growth4_E.GxP, Growth5_E.GxPre, Growth6_E.GxPxPre)
+anova_result_Gro
 ###
-
-load(paste0("/home/kellebea/cluster/SoySeg/avg_precipitation_14_nlme_v2.2.RData"))
-Model1 <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/avg_temperaturePlus_14_nlme_v2.2.RData"))
-Model2 <- model #Model2       2 429 -28799.73 -25541.83 14828.86
-
-load(paste0("/home/kellebea/cluster/SoySeg/avg_temperatureMinus_14_nlme_v2.2.RData"))
-Model2.1 <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/avg_temperature_14_nlme_v2.2.RData"))
-Model2.2 <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/avg_photothermalMinus_14_nlme_v2.2.RData"))
-Model3 <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/avg_photothermalPlus_14_nlme_v2.2.RData"))
-Model3.1 <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/avg_photothermal_14_nlme_v2.2.RData"))
-Model3.2 <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/gdd_temperature_nlme_v2.2.RData"))
-Model3.3 <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/avg_vpd_14_nlme_v2.2.RData"))
-Model4 <- model
-# 
-load(paste0("/home/kellebea/cluster/SoySeg/avg_radiation_14_nlme_v2.2.RData"))
-Model5 <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/avg_precipitation_radiation_14_nlme_v2.2.RData"))
-Model6 <- model #14679  -563 -28056.83 -23781.31 14591.42 
-
-load(paste0("/home/kellebea/cluster/SoySeg/avg_radiation_14_temperature_14_nlme_v2.2.RData"))
-Model7 <- model 
-
-# anova(Model1, Model2, Model3,  Model4,  Model5,  Model6)
-anova(Model0, Model1, Model2, Model3,  Model4,  Model5, Model6, Model7)
-
-anova(Model0, Model1, Model2, Model2.1, Model2.2, Model3, Model3.1, Model3.2, Model3.3, Model6)
-
-###
-load(paste0("/home/kellebea/cluster/SoySeg/Senescence/baseline_nlme_v5.1.RData"))
-Model0.1sen <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/Senescence/baseline2_nlme_v5.1.RData"))
-Model0.2sen <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/Senescence/baseline2.1_nlme_v5.1.RData"))
-Model0.2.1sen <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/Senescence/baseline3_nlme_v5.1.RData"))
-Model0.3sen <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/Senescence/baseline4_nlme_v5.1.RData"))
-Model0.4sen <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/Senescence/baseline5_nlme_v5.1.RData"))
-Model0.5sen <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/Senescence/baseline6_nlme_v5.1.RData"))
-Model0.6sen <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/Senescence/baseline7_nlme_v5.1.RData"))
-Model0.7sen <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/Senescence/baseline8_nlme_v5.1.RData"))
-Model0.8sen <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/Senescence/baseline9_nlme_v5.1.RData"))
-Model0sen <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/Senescence/avg_temperatureMinus_14_nlme_v5.1.RData"))
-Model1sen <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/Senescence/avg_photothermalMinus_14_nlme_v5.1.RData"))
-Model2sen <- model
-
-load(paste0("/home/kellebea/cluster/SoySeg/Senescence/avg_vpdMinus_14_nlme_v5.1.RData"))
-Model3sen <- model
-
-anova(Model0.1sen, Model0.2sen, Model0.2.1sen, Model0.3sen, Model0.4sen, Model0.5sen, Model0.6sen, Model0.7sen, Model0.8sen, Model0sen)
-anova(Model0sen, Model1sen, Model2sen, Model3sen)
-####
-
-
-library(xtable)
+load("model/Senescence0_G.RData")
+load("model/Senescence1_E.G.RData")
+load("model/Senescence2_E.GxT.RData")
+# load("model/Senescence3_E.GxR.RData") did not converge
+load("model/Senescence4_E.GxP.RData")
+# load("model/Senescence5_E.GxPre.RData") did not converge
+# load("model/Senescence6_E.GxPxPre.RData") did not converge
 
 # Perform the ANOVA
-anova_result <- anova(Model0, Model3, Model6)
-anova_result
-# Convert to xtable
-anova_latex <- xtable(anova_result, caption = "ANOVA Results", label = "tab:anova_results")
+anova_result_Sen <-anova(Senescence0_G, Senescence1_E.G, Senescence2_E.GxT,  Senescence4_E.GxP)
+anova_result_Sen
 
-# Save to a .tex file
-sink("table/anova_results.tex")
-print(anova_latex, include.rownames = TRUE, table.placement = "H", sanitize.text.function = identity)
-sink()
+####
+
+#### ask chatgpt to do the table
+
+# library(xtable)
+# 
+# # Convert ANOVA output to a clean dataframe
+# anova_df <- as.data.table(summary(anova_result_Sen))
+# 
+# # Ensure row names are properly formatted for LaTeX
+# anova_df <- cbind(Model = rownames(anova_df), anova_df)  # Move row names to a column
+# rownames(anova_df) <- NULL  # Remove original row names
+# 
+# # Convert to LaTeX table format
+# anova_tex <- xtable(, caption="ANOVA Results for Senescence Models", label="tab:anova_sen")
+# 
+# # Save the LaTeX table to a file
+# sink("table/anova_results_senescence.tex")
+# print(anova_tex, type="latex", include.rownames=FALSE)
+# sink()
 
 ###
-load("/home/kellebea/cluster/SoySeg/Growth_data_nlme_v2.2.RData") 
+load("data/Growth_data.RData") 
 
 df$date <- as.Date(df$date)
 df <- setDT(df)
-df$Model0 <- fitted(Model0)
-df$Model1 <- fitted(Model1)
-df$Model2 <- fitted(Model2)
-df$Model3 <- fitted(Model3)
-df$Model4 <- fitted(Model4)
-df$Model5 <- fitted(Model5)
-df$Model6 <- fitted(Model6)
-df$Model7 <- fitted(Model7)
+df$Model0 <- fitted(Growth0_G)
+df$Model1 <- fitted(Growth1_E.G)
+# df$Model2 <- fitted(Model2)
+# df$Model3 <- fitted(Model3)
+df$Model4 <- fitted(Growth4_E.GxP)
+# df$Model5 <- fitted(Model5)
+df$Model6 <- fitted(Growth6_E.GxPxPre)
+# df$Model7 <- fitted(Model7)
 
 df[,nrow(na.omit(.SD)[!duplicated(genotype.id),]),by=year_site.UID]
 
-p_Growth <- melt.data.table(df, measure.vars = c(paste0("Model",0:7)),variable.name = "Model", value.name = "Fit")
+p_Growth <- melt.data.table(df, measure.vars = c(paste0("Model",c(0,1,4,6))),variable.name = "Model", value.name = "Fit")
 p_Growth$Period <- "Growth"
 p_Growth$period <- NULL
 p_Growth$Max <- NULL
 p_Growth$Rep<- NULL
 
 
-load("/home/kellebea/cluster/SoySeg/Senescence/Senescence_data_nlme_v5.1.RData") 
+load("data/Senescence_data.RData") 
 df$date <- as.Date(df$date)
 df <- setDT(df)
-df$Model10 <- fitted(Model0sen)
-df$Model11 <- fitted(Model2sen)
-# df$Model2 <- fitted(Model2sen)
-# df$Model3 <- fitted(Model3sen)
+df$Model10 <- fitted(Senescence0_G)
+df$Model11 <- fitted(Senescence1_E.G)
+
+df$Model14 <- fitted(Senescence4_E.GxP)
+
 
 
 df[,nrow(na.omit(.SD)[!duplicated(genotype.id),]),by=year_site.UID]
 
-p_Sen <- melt.data.table(df, measure.vars = c(paste0("Model",c(10,11))),variable.name = "Model", value.name = "Fit")
+p_Sen <- melt.data.table(df, measure.vars = c(paste0("Model",c(10,11,14))),variable.name = "Model", value.name = "Fit")
 p_Sen$Period <- "Senescence"
 p_Sen$period <- NULL
 p_Sen$Rep <- NULL
@@ -300,42 +213,51 @@ ggplot(data=p,aes(Date, value, shape=Rep))+ ylab("Canopy cover (%)")+
 # Extract the coefficients
 require(nlme)
 # ranef(fm7Soy.nlme)
-coefs <- fixed.effects(Model0)
+coefs <- fixed.effects(Growth0_G)
+coefs0 <- as.data.frame(coefs)
+coefs0$Model <- "Model0"
+coefs0$Period <- "Growth"
+coefs0$term <- rownames(coefs0)
+
+coefs <- fixed.effects(Growth1_E.G)
 coefs1 <- as.data.frame(coefs)
-coefs1$Model <- "Model0"
+coefs1$Model <- "Model1"
 coefs1$Period <- "Growth"
 coefs1$term <- rownames(coefs1)
-coefs <- fixed.effects(Model2)
-coefs2 <- as.data.frame(coefs)
-coefs2$Model <- "Model2"
-coefs2$Period <- "Growth"
-coefs2$term <- rownames(coefs2)
 
-coefs <- fixed.effects(Model3)
-coefs3 <- as.data.frame(coefs)
-coefs3$Model <- "Model3"
-coefs3$Period <- "Growth"
-coefs3$term <- rownames(coefs3)
+coefs <- fixed.effects(Growth4_E.GxP)
+coefs4 <- as.data.frame(coefs)
+coefs4$Model <- "Model4"
+coefs4$Period <- "Growth"
+coefs4$term <- rownames(coefs4)
 
-coefs <- fixed.effects(Model0sen)
-coefs10 <- as.data.frame(coefs)
-coefs10$Model <- "Model10"
-coefs10$Period <- "Senescence"
-coefs10$term <- rownames(coefs10)
-
-coefs <- fixed.effects(Model2sen)
-coefs11 <- as.data.frame(coefs)
-coefs11$Model <- "Model11"
-coefs11$Period <- "Senescence"
-coefs11$term <- rownames(coefs11)
-
-coefs <- fixed.effects(Model6)
+coefs <- fixed.effects(Growth6_E.GxPxPre)
 coefs6 <- as.data.frame(coefs)
 coefs6$Model <- "Model6"
 coefs6$Period <- "Growth"
 coefs6$term <- rownames(coefs6)
 
-coefs <- rbind(coefs1, coefs2, coefs3, coefs6, coefs10, coefs11) #
+
+coefs <- fixed.effects(Senescence0_G)
+coefs10 <- as.data.frame(coefs)
+coefs10$Model <- "Model10"
+coefs10$Period <- "Senescence"
+coefs10$term <- rownames(coefs10)
+
+coefs <- fixed.effects(Senescence1_E.G)
+coefs11 <- as.data.frame(coefs)
+coefs11$Model <- "Model11"
+coefs11$Period <- "Senescence"
+coefs11$term <- rownames(coefs11)
+
+coefs <- fixed.effects(Senescence4_E.GxP)
+coefs14 <- as.data.frame(coefs)
+coefs14$Model <- "Model14"
+coefs14$Period <- "Senescence"
+coefs14$term <- rownames(coefs14)
+
+
+coefs <- rbind(coefs0, coefs1, coefs4, coefs6, coefs10, coefs11, coefs14) #
 # coefs$Estimate <- as.data.frame(summary(fm7Soy.nlme)$coef)$Estimate
 unique(coefs$Period)
 
@@ -389,15 +311,15 @@ coefs_max[is.na(variable),]
 coefs_max_melt <- melt.data.table(coefs_max, id.vars =c("variable","Model","Period"),measure.vars=c("max_genotype","min_genotype"),value.name = "extreme_genotypes",variable.name = "Extreme")
 coefs_max_melt$variable_extreme <- paste(coefs_max_melt$variable,coefs_max_melt$Extreme) #,coefs_max_melt$Model
 unique(coefs_max_melt$extreme_genotypes)
-coefs_max_melt <- subset(coefs_max_melt, Model%in%c("Model6","Model11"))
-coefs_max_overall <- subset(coefs_max_melt, Model%in%c("Model6","Model11"))
+coefs_max_melt <- subset(coefs_max_melt, Model%in%c("Model6","Model14"))
+coefs_max_overall <- subset(coefs_max_melt, Model%in%c("Model6","Model14"))
 
 
 # p <- melt.data.table(setDT(df), measure.vars = c(paste0("Model",1:3)),variable.name = "Model", value.name = "Fit")
 df_selected <- rbind(subset(df_all,Model%in%c(paste0("Model",c(6)))&Period=="Growth"),  subset(df_all,Model%in%c(paste0("Model",c(11)))&Period=="Senescence"))
 p <- merge(df_selected, coefs_max_melt, by.x =c("genotype.id","Model","Period"), by.y=c("extreme_genotypes","Model","Period"),allow.cartesian=TRUE, all.x = T, all.y = F )
 
-p <- subset(p, Model%in%c("Model6","Model11")&genotype.id!="average"&variable_extreme!="average")
+p <- subset(p, Model%in%c("Model6","Model14")&genotype.id!="average"&variable_extreme!="average")
 p_mean <- p[,list(Fit=mean(Fit,na.rm=T)),by=.(time_since_sowing,Model,Period,variable_extreme,genotype.id,year_site.UID)]
 
 
@@ -413,7 +335,7 @@ ggplot(data=p,aes(time_since_sowing, value, color=genotype.id,shape=year_site.UI
 # facet_grid(Model~.,scale="free",switch="both", labeller = label_parsed)
 # geom_smooth(method = "loess",aes(time_since_sowing, value, color=genotype.id))
 
-p <- subset(df_all, Model%in%c("Model6","Model11")&genotype.id%in% coefs_max_melt$extreme_genotypes[coefs_max_melt$Model%in%c("Model6","Model11")])
+p <- subset(df_all, Model%in%c("Model6","Model14")&genotype.id%in% coefs_max_melt$extreme_genotypes[coefs_max_melt$Model%in%c("Model6","Model14")])
 
 ggExtremGrowthCurvesSummary <- ggplot(data=p,aes(time_since_sowing, value, color=genotype.name,shape=year_site.UID, group=genotype.name))+ ylab("Canopy cover (%)")+xlab("Days after sowing (d)")+
   theme_bw()+theme(strip.placement = "outside", strip.background = element_blank(),legend.key.size = unit(0.9, "lines"), legend.position="top",panel.border = element_rect(colour = "black", fill=NA, size=1), panel.grid.minor = element_blank(),panel.grid.major = element_blank(),axis.text.x = element_text(angle = 0, hjust = 0.5),text = element_text(size=9))+
@@ -519,7 +441,7 @@ ggGrowthCurves <- ggplot()+ ylab("Canopy cover (%)")+
   
   geom_point(data=subset(p, !variable_extreme%in%variable_extreme_sen&Period=="Senescence"),aes(time_since_sowing, value, shape=variable_extreme), size=0.25, alpha=0.5, color="grey", shape=1,show.legend = F)+
   geom_point(data=subset(p, variable_extreme%in%variable_extreme_sen&Period=="Senescence"),aes(time_since_sowing, value, shape=variable_extreme, color=genotype.name, group=paste(UID,platform)), size=0.5, alpha=0.5, shape=1)+
-  scale_color_manual(name="Breeding \n line", values=tol10qualitative)+
+  scale_color_manual(name="Breeding \n line", values=tol12qualitative)+
   scale_shape_manual(values=1:25)+
   # guides(shape = guide_legend(nrow=2))+
   # scale_color_manual(values=tol21rainbow[c(1,3,5,7,9,11,13,15,17,19,21,2,4,6,8,10,12,14,16,18,20)])+
@@ -537,17 +459,13 @@ ggGrowthCurves
 #####
 #####
 
-SpATsBLUE <- read.csv("/home/kellebea/public/Evaluation/Projects/KP0023_legumes/Soybean/201x/SpATScorr-20241108-BLUE_Soybean.csv")#read.csv("SpATScorr-20231201-BLUE_Soybean.csv")
+SpATsBLUE <- read.csv("/home/kellebea/public/Evaluation/Projects/KP0023_legumes/Soybean/201x/SpATScorr-20250123-BLUE_Soybean.csv")#read.csv("SpATScorr-20231201-BLUE_Soybean.csv")
 unique(SpATsBLUE$year_site.UID)
 
 ### check year_site.UID
 
 
 SpATsBLUE$value <- SpATsBLUE$predicted.values
-
-SpATsBLUE_overall <- read.csv("/home/kellebea/public/Evaluation/Projects/KP0023_legumes/Soybean/201x/SpATScorr-20241108-BLUE_overall_Soybean.csv")
-SpATsBLUE_overall <- subset(SpATsBLUE_overall, predicted.values>1) #fix me. is for yield
-unique(SpATsBLUE_overall$variable)
 #
 SpATsBLUE_yield <- subset(SpATsBLUE, variable%in%c("Yield"))#,"Protein.content"
 SpATsBLUE_yield$genotype.id <- as.character(SpATsBLUE_yield$genotype.id)
@@ -576,6 +494,17 @@ ggplot(data=p, aes(x=Year, y=value) ) +
 BLUEs <- rbind(SpATsBLUE_overall_CC, SpATsBLUE_yield,fill=T)
 
 
+##########
+
+
+SpATsBLUE_overall <- fread("/home/kellebea/public/Evaluation/Projects/KP0023_legumes/Soybean/201x/SpATScorr-20250123-BLUE_overall_Soybean.csv")
+# SpATsBLUE_overall <- subset(SpATsBLUE_overall, predicted.values>1) #fix me. is for yield
+yield_variables <- unique(SpATsBLUE_overall$variable)
+# SpATsBLUE_overall <- dcast.data.table(SpATsBLUE_overall, genotype.id+year_site.UID+Date~variable, value.var = "predicted.values")
+# SpATsBLUE_overall$Protein.yield_h2 <- SpATsBLUE_overall$Yield*SpATsBLUE_overall$Protein.content
+# SpATsBLUE_overall$Yield_moist <- SpATsBLUE_overall$Yield*(SpATsBLUE_overall$Moisture/100+1)
+# SpATsBLUE_overall <- melt.data.table(SpATsBLUE_overall, measure.vars = c(yield_variables,"Protein.yield_h2","Yield_moist"))
+
 
 SpATsBLUE_overall$value <- SpATsBLUE_overall$predicted.values
 SpATsBLUE_overall$genotype.id <- as.character(SpATsBLUE_overall$genotype.id)
@@ -590,7 +519,7 @@ yield_coefs$variable_fitted <- yield_coefs$variable.y
 yield_coefs[,estimate:=remove_outliers(estimate, 2.5),by=.(variable_measured,variable_fitted)]
 yield_coefs$variable_fitted[yield_coefs$Model=="Model3"] <- paste0(yield_coefs$variable_fitted[yield_coefs$Model=="Model3"] ,"Mod3")
 
-yield_coefs_wide <- dcast.data.table(subset(yield_coefs, Model%in%c("Model6","Model3","Model11")), genotype.id+variable_measured+value~variable_fitted, value.var = "estimate")
+yield_coefs_wide <- dcast.data.table(subset(yield_coefs, Model%in%c("Model6","Model3","Model14")), genotype.id+variable_measured+value~variable_fitted, value.var = "estimate")
 yield_coefs_wide <- subset(yield_coefs_wide, variable_measured=="Protein.yield")
 plot(yield_coefs_wide$scal.Growth, yield_coefs_wide$InteractionRad.Growth)
 
@@ -651,9 +580,12 @@ ggplot(data=p, aes(y=estimate,x=value)) + #ylab(expression("F"["q"]*"'"/"F"["m"]
   geom_text(size=8/ (14/5), color="black", show.legend = F, aes(x=xx, y=Inf,label=r ,vjust=1.2, hjust=0), check_overlap = T)
 
 
-p <- subset(p, Model%in%c("Model6","Model11")&variable_measured%in%c("Protein.yield"))
+p <- subset(p, Model%in%c("Model6","Model14")&variable_measured%in%c("Protein.yield","End.of.maturity"))
 p$variable_measured <- gsub("Protein.yield","Protein yield (t/ha)",p$variable_measured)
-p$value <- p$value/100 #fix me
+p$variable_measured <- gsub("End.of.maturity","Maturity (d)",p$variable_measured)
+p$Model <- gsub("Model14","Model4",p$Model)
+
+p$value[p$variable_measured=="Protein.yield"] <- p$value[p$variable_measured=="Protein.yield"]/100 
 p$variable_fitted <- gsub("Interaction","Gen:",p$variable_fitted )
 
 ggBeanCoef <- ggplot(data=p, aes(x=estimate,y=value)) + #ylab(expression("F"["q"]*"'"/"F"["m"]*"'"))+xlab(expression("Biomass [mg/pot and kg/ha]"))+
@@ -858,7 +790,7 @@ print(ggFluc)
 # ggsave("FlucWithInsets.png",  width = 280, height = 180, units = "mm", ggFluc, bg="white")
 
 #######
-load("/home/kellebea/cluster/SoySeg/Growth_data_nlme_v2.2.RData") 
+load("/data/Growth_data_nlme_v2.2.RData") 
 
 # Create a data frame with the predictors
 predictors <- df
@@ -1519,35 +1451,4 @@ first_row <- plot_grid(ggGrowthCurves, ggBarExtremeLines, ggEffects, rel_heights
 
 
 ##########
-
-load("/home/kellebea/cluster/SoySeg/fm3Soy.nlme.No2022.RData") 
-load("/home/kellebea/cluster/SoySeg/fm6.1Soy.nlme.No2022.RData") 
-load("/home/kellebea/cluster/SoySeg/fm7Soy.nlme.No2022.RData") 
-
-TrainData <- df[df$year_site.UID!="FPSB016",]
-NewData <- subset(FPSB016, genotype.id%in%TrainData$genotype.id)
-NewData$plot_grouped_global <- 50
-
-NewData$Fit2 <- predict(fm3Soy.nlme, newdata=NewData)
-NewData$Fit3 <- predict(fm6.1Soy.nlme, newdata=NewData)
-NewData$Fit4 <- predict(fm7Soy.nlme, newdata=NewData)
-
-
-
-p <- subset(NewData)
-p <- setDT(p)
-p <- melt.data.table(p, measure.vars = c(paste0("Fit",2:4)),variable.name = "Model", value.name = "Fit")
-
-p <- subset(p, genotype.id%in%unique(p$genotype.id)[4:7])
-p$Date <- p$date
-p$plot_grouped_global <- paste(p$plot_grouped_global, p$genotype.id)
-p <- setDT(p)[,Rep:=as.numeric(as.factor(UID)),by=.(genotype.id,date,year_site.UID)]
-p$Rep <- paste("Rep",p$Rep )
-
-ggplot(data=p,aes(Date, value, group=plot_grouped_global,shape=Rep))+ ylab("Canopy cover (%)")+
-  theme_bw()+theme(strip.placement = "outside",axis.title.x = element_blank(), strip.background = element_blank(),legend.key.size = unit(0.9, "lines"), legend.position="top",panel.border = element_rect(colour = "black", fill=NA, linewidth=1), panel.grid.minor = element_blank(),panel.grid.major = element_blank(),axis.text.x = element_text(angle = 0, hjust = 0.5),text = element_text(size=9))+
-  geom_point(size=1.5, alpha=1)+
-  geom_line(aes(Date, Fit,group=plot_grouped_global, color=Model))+
-  facet_grid(genotype.id~year_site.UID+Model,scale="free",switch="both", labeller = label_parsed)
-
 
