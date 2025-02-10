@@ -22,13 +22,13 @@ df$platform <- as.factor(df$platform)
 options(contrasts= c("contr.sum","contr.poly"))
 
 ###
-# no_genotypes = length(levels(df$genotype.id))
-# dynamic_Asym = c(soyFix[1], rep(0,1*no_genotypes))
-# dynamic_xmid = c(soyFix[2], rep(0,3))
-# dynamic_scal = c(soyFix[3], rep(0,2*no_genotypes+1))
-# 
-# dynamic_vector <- append(dynamic_Asym, c(dynamic_xmid, dynamic_scal))
-# 
+no_genotypes = length(levels(df$genotype.id))
+dynamic_Asym = c(soyFix[1], rep(0,1*no_genotypes))
+dynamic_xmid = c(soyFix[2], rep(0,3))
+dynamic_scal = c(soyFix[3], rep(0,2*no_genotypes+1))
+
+dynamic_vector <- append(dynamic_Asym, c(dynamic_xmid, dynamic_scal))
+
 # ##
 # start_time <- Sys.time()
 # 
@@ -99,8 +99,8 @@ scals <- ci$est[grep("scal\\.genotype\\.id[^:]*$", ci$names)]
 asym <- ci$est[grep("Asym.genotype.id", ci$names)]
 
 # initiate dataframe for ideal candidates
-genotype_selection <- data.frame(matrix(data=NA, nrow=length(unique(df$genotype.id)), ncol=11))
-colnames(genotype_selection) = c('genotype', 'prec_int','prec','rad_int','rad', 'prec_low','rad_low','scal','asymp','scals_int','asym_int')
+genotype_selection <- data.frame(matrix(data=NA, nrow=length(unique(df$genotype.id)), ncol=9))
+colnames(genotype_selection) = c('genotype', 'prec_int','prec','rad_int','rad_int_2','rad', 'rad_2','asymp','asym_int')
 
 # filter all estimates and intervals of the variables according to the filtering criteria
 # explained in the report
@@ -110,27 +110,21 @@ for (i in 1:length(unique(df$genotype.id))) {
   genotype_selection[i, 1] = i
   genotype_selection[i, 2] = ifelse(prec_intervals[i] < quantile(prec_intervals)[2], 1,0)
   genotype_selection[i, 3] = ifelse(rad_intervals[i] < quantile(rad_intervals)[2], 1,0)
+  genotype_selection[i, 4] = ifelse(rad_intervals[i] < quantile(rad_intervals)[3], 1,0) #  increase the weight of rad_interval
   median(prec_main_effect+precs)
   precs_abs <- abs(prec_main_effect+precs)
-  genotype_selection[i, 4] = ifelse(precs_abs[i] < quantile(precs_abs)[3], 1, 0)  # offset quantile(precs)[3]50%  0.4803419 
-  rad_abs <- abs(rad_main_effect+rad)
-  genotype_selection[i, 5] = ifelse(rad_abs[i] < quantile(rad_abs)[3], 1, 0) # quantile(rad)
-  
-  # genotype_selection[i, 6] = ifelse(centred_precs[i] < quantile(centred_precs)[2], 1, 0)  # offset quantile(precs)[3]50%  0.4803419 
-  # genotype_selection[i, 7] = ifelse(rad[i] < quantile(centred_rad)[2], 1, 0) # quantile(rad)
-  # 
-  # genotype_selection[i, 6] = ifelse(precs[i] > quantile(precs,0.3), 1, 0)
-  # genotype_selection[i, 7] = ifelse(rad[i] > quantile(rad,0.1), 1, 0)
-  genotype_selection[i, 6] = ifelse(scals[i] <  quantile(scals)[2], 1, 0)
-  genotype_selection[i, 7] = ifelse(asym[i] >  quantile(asym)[3], 1, 0)
-  genotype_selection[i, 8] = ifelse(scals_intervals[i] < quantile(scals_intervals)[2], 1, 0)
+  genotype_selection[i, 5] = ifelse(precs_abs[i] < quantile(precs_abs)[3], 1, 0)  # offset quantile(precs)[3]50%  0.4803419 
+  # rad_abs <- abs(rad_main_effect+rad)
+  genotype_selection[i, 6] = ifelse(rad[i] < quantile(rad)[1], 1, 0) # 
+  genotype_selection[i, 7] = ifelse(rad[i] < quantile(rad)[2], 1, 0) #  increase the weight of rad
+  genotype_selection[i, 8] = ifelse(asym[i] >  quantile(asym)[3], 1, 0)
   genotype_selection[i, 9] = ifelse(asym_intervals[i] < quantile(asym_intervals)[2], 1, 0)
   i = i+1
 }
 
 
-genotype_selection$sum = rowSums(genotype_selection[, c(2:5,7,9)]) 
-candidates = genotype_selection$genotype[genotype_selection$sum > 5] # get the genotypes fulfilling more than ... criteria
+genotype_selection$sum = rowSums(genotype_selection[, c(2:9)]) 
+candidates = genotype_selection$genotype[genotype_selection$sum > 6] # get the genotypes fulfilling more than ... criteria
 candidates <- candidates[!is.na(candidates)]
 candidates
 # Since the sum-to-zero constraint removes the genotype-id identification, we need
@@ -214,12 +208,12 @@ for (id in candidate_genotypes) {
   start_time <- Sys.time()
   
   model_candidates <- update(cc_rf_scal,
-                           fixed = list(Asym ~ genotype.id+platform,
-                                        xmid ~ avg_temperature_14 + avg_precipitation_14 + avg_radiation_14,
-                                        scal ~ genotype.id*(avg_precipitation_14+avg_radiation_14)+platform),
-                           start = dynamic_vector, control = list (msVerbose = TRUE,
-                                                                   maxIter = 100,
-                                                                   msMaxIter = 100))
+                              fixed = list(Asym ~ genotype.id+platform,
+                                           xmid ~ avg_temperature_14 + avg_precipitation_14 + avg_radiation_14,
+                                           scal ~ genotype.id:(avg_photothermal_14+avg_precipitation_14)+platform),
+                              start = dynamic_vector, control = list (msVerbose = TRUE,
+                                                                      maxIter = 200,
+                                                                      msMaxIter = 200))
   
   end_time <- Sys.time()
   print(end_time-start_time)
@@ -235,17 +229,17 @@ for (id in candidate_genotypes) {
   ci$interval <- ci$upper - ci$lower
 
   overview_df$Genotype[i] = id
-  overview_df$Scale_low[i] = ci["scal.(Intercept)","lower"]
-  overview_df$Scale_est[i] = ci["scal.(Intercept)","est"]
-  overview_df$Scale_up[i] = ci["scal.(Intercept)","upper"]
-  overview_df$Scale_interval[i] = overview_df$Scale_up[i] - overview_df$Scale_low[i]
-  overview_df$Radiation_low[i] = ci["scal.avg_radiation_14","lower"]
-  overview_df$Radiation_est[i] = ci["scal.avg_radiation_14","est"]
-  overview_df$Radiation_up[i] = ci["scal.avg_radiation_14","upper"]
-  overview_df$Radiation_interval[i] = overview_df$Radiation_up[i] - overview_df$Radiation_low[i]
-  overview_df$Precipitation_low[i] = ci["scal.avg_precipitation_14","lower"]
-  overview_df$Precipitation_est[i] = ci["scal.avg_precipitation_14","est"]
-  overview_df$Precipitation_up[i] = ci["scal.avg_precipitation_14","upper"]
+  # overview_df$Scale_low[i] = ci["scal.(Intercept)","lower"]
+  # overview_df$Scale_est[i] = ci["scal.(Intercept)","est"]
+  # overview_df$Scale_up[i] = ci["scal.(Intercept)","upper"]
+  # overview_df$Scale_interval[i] = overview_df$Scale_up[i] - overview_df$Scale_low[i]
+  overview_df$Photothermal_low[i] = ci[paste0("scal.genotype.id",id,":avg_photothermal_14"),"lower"]
+  overview_df$Photothermal_est[i] = ci[paste0("scal.genotype.id",id,":avg_photothermal_14"),"est"]
+  overview_df$Photothermal_up[i] = ci[paste0("scal.genotype.id",id,":avg_photothermal_14"),"upper"]
+  overview_df$Photothermal_interval[i] = overview_df$photothermal_up[i] - overview_df$photothermal_low[i]
+  overview_df$Precipitation_low[i] = ci[paste0("scal.genotype.id",id,":avg_precipitation_14"),"lower"]
+  overview_df$Precipitation_est[i] = ci[paste0("scal.genotype.id",id,":avg_precipitation_14"),"est"]
+  overview_df$Precipitation_up[i] = ci[paste0("scal.genotype.id",id,":avg_precipitation_14"),"upper"]
   overview_df$Precipitation_interval[i] = overview_df$Precipitation_up[i] - overview_df$Precipitation_low[i]
   overview_df$Asymp_low[i] = ci["Asym.(Intercept)","lower"]
   overview_df$Asymp_est[i] = ci["Asym.(Intercept)","est"]
@@ -276,8 +270,8 @@ dt[, c("Scale", "Level") := tstrsplit(variable, "_")]
 dt$variable <- NULL
 dt_cats <- dcast(dt, ...~Level)
 
-load("avg_precipitation_radiation_14_nlme_v2.2.RData")
-overview_all_df = intervals(model)$fixed
+load("model/Growth6_E.GxPxPre.RData")
+overview_all_df = intervals(Growth6_E.GxPxPre)$fixed
   
 add_gen_id <- read.csv("/home/kellebea/public/Evaluation/Projects/KP0023_legumes/Design/2024/ids_soybean_cleaned.csv")
 add_gen_id <- add_gen_id[,c("id","name")]
@@ -322,82 +316,38 @@ overview_all_df$rownames <- Rownames
 overview_all_df[, c("Variable", "Interaction") := tstrsplit(rownames, ":", fill = NA)]
 
 # Extract key parts from Variable
-overview_all_df[, c("Scale", "gen","Genotype") := tstrsplit(Variable, "\\.", fill = NA)]
+overview_all_df[, c("Scale", "gen","genotype") := tstrsplit(Variable, "\\.", fill = NA)]
 
+overview_all_df$Scale[grep("Intercept",overview_all_df$Variable)] <- "Intercept"
 # For Interaction terms, replace NA with "None"
 overview_all_df[is.na(Interaction), Interaction := "None"]
 
-# Calculate averages across all genotypes and interactions
-overview_means <- overview_all_df[!is.na(Genotype) , .(
-  avg_lower = median(lower, na.rm = TRUE),
-  avg_est = median(est., na.rm = TRUE),
-  avg_upper = median(upper, na.rm = TRUE)
-), by = .(Scale, Interaction)]
 
-intercepts <- overview_all_df[gen=="(Intercept)" , .(
-  intercept_lower = lower,
-  intercept_est = est.,
-  intercept_upper = upper
-  
-),by= .(Scale, Interaction)]
+overview_all_df$genotype.id <- gsub("id","",overview_all_df$genotype)
+overview_all_df$Selection <- "Remaining population"
+overview_all_df <- merge(overview_all_df, add_gen_id, by="genotype.id")
+overview_all_df$Selection[overview_all_df$genotype.id%in%candidate_genotypes] <- overview_all_df$Genotype[overview_all_df$genotype.id%in%candidate_genotypes]
+overview_all_df$variable <- overview_all_df$Scale
+overview_all_df$variable[overview_all_df$Scale=="Asym"] <- "Asym"
+overview_all_df$variable[overview_all_df$Interaction=="avg_photothermal_14"] <- "G:P"
+overview_all_df$variable[overview_all_df$Interaction=="avg_precipitation_14"] <- "G:Pre"
 
-overview_means <- merge(overview_means, intercepts, by=c("Scale","Interaction"),all.x = T)
-overview_means[is.na(overview_means)] <- 0
+p <- subset(overview_all_df,Scale!="Intercept")
 
-overview_means$avg_est <- overview_means$avg_est +overview_means$intercept_est
-overview_means$avg_lower <- overview_means$avg_lower +overview_means$intercept_lower
-overview_means$avg_upper <- overview_means$avg_upper +overview_means$intercept_upper
+p[,mean_est:=mean(est.),by=variable]
+# 
+ggIdeal_coef <- ggplot(p, aes(x = Genotype, y = est., color = Selection)) +xlab("Breeding line")+ylab("Coefficient")+
+  geom_point(size =0.5 ) +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2, position = position_dodge(width = 0.5), color="grey") +  # Add error bars
+  geom_point(data=subset(p, genotype.id%in%candidate_genotypes),size =1.5 )+ 
+  geom_errorbar(data=subset(p, genotype.id%in%candidate_genotypes),aes(ymin = lower, ymax = upper), width = 0.2, position = position_dodge(width = 0.5), color="black") +  # Add error bars
+  theme_bw()+theme(plot.title=element_text(hjust=-0.2),strip.placement = "outside", panel.spacing.x = unit(-0.2, "lines"), strip.background = element_blank(),legend.title = element_blank(),legend.key.height=unit(0.5,"line"),legend.key.size = unit(1, "lines"), legend.position="none",panel.border = element_rect(colour = "black", fill=NA, size=1), panel.grid.minor = element_blank(),panel.grid.major = element_blank(),axis.text.x = element_blank(),text = element_text(size=8),axis.title.y = element_blank())+
+  scale_color_manual(values =c(tol12qualitative[c(2,10,11)],"grey"))+
+  geom_hline(aes(yintercept=mean_est),linetype="dashed")+
+  facet_grid(variable~.,scales = "free",switch="both")
 
-# Standardize Scale and Interaction names in `overview_means`
-overview_means[, Scale := gsub("scal", "Scale", Scale)]
-overview_means[, Interaction := gsub("avg_", "", Interaction)]  # Remove prefixes like "avg_"
-overview_means[, Interaction := ifelse(is.na(Interaction), "None", Interaction)]  # Replace NA with "None"
-
-overview_means$Scale[overview_means$Interaction=="precipitation_14"] <- "Gen:Prec"
-overview_means$Scale[overview_means$Interaction=="radiation_14"] <- "Gen:Rad"
-
-overview_means <- subset(overview_means, Scale!="xmid")
-
-# Standardize Scale and Genotype names in `dt_cats`
-dt_cats[, Scale := gsub("scal", "Scale", Scale)]
-dt_cats[, Scale := gsub("Precipitation", "Gen:Prec", Scale)]
-dt_cats[, Scale := gsub("Radiation", "Gen:Rad", Scale)]
-dt_cats[, Scale := gsub("Asymp", "Asym", Scale)]
-
-# Add average marker data to `overview_means`
-overview_means$Genotype <- "Median"
-
-# Plot
-ggIdeal_coef <- ggplot() +
-  theme_bw() +
-  theme(
-    plot.title = element_text(hjust = -0.2),
-    strip.placement = "outside",
-    panel.spacing.x = unit(-0.2, "lines"),
-    strip.background = element_blank(),
-    legend.title = element_blank(),
-    legend.key.height = unit(0.5, "line"),
-    legend.key.size = unit(1, "lines"),
-    legend.position = "none",
-    panel.border = element_rect(colour = "black", fill = NA, size = 1),
-    panel.grid.minor = element_blank(),
-    panel.grid.major = element_blank(),
-    axis.text.x = element_text(angle = 0, hjust = 0.5),
-    text = element_text(size = 8),
-    axis.title = element_blank()
-  ) +
-  geom_point(data = dt_cats, aes(x = Genotype, y = est, color = Genotype),size = 2) +  # Add points
-  geom_errorbar(data = dt_cats, aes(x = Genotype, ymin = low, ymax = up), width = 0.2, position = position_dodge(width = 0.5)) +  # Error bars
-  geom_point(data = overview_means, aes(x = Genotype, y = avg_est), color = "black", shape = 4, size = 2) +  # Average points
-  geom_errorbar(data = overview_means, aes(x = Genotype, ymin = avg_lower, ymax = avg_upper), width = 0.3, color = "grey60") +  # Average error bars
-  labs(
-    x = "Scale",
-    y = "Estimate",
-    # title = "Estimates and Interactions with Error Bars",
-    # color = "Interaction"
-  ) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  scale_color_manual(values = tol10qualitative[c(7,8)]) +
-  facet_grid(Scale ~ ., scales = "free",switch="y")
 ggIdeal_coef
+####
+
+
 

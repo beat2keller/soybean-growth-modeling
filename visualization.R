@@ -37,46 +37,32 @@ vis4net10 <- c('#00758d', '#5c8f84', '#8aa97a', '#b1c56d', '#d7e25b', '#feb5cd',
 load("model/Growth0_G.RData")
 load("model/Growth1_E.G.RData")
 load("model/Growth2_E.GxT.RData")
-load("model/Growth3_E.GxR.RData")
-load("model/Growth4_E.GxP.RData")
+load("model/Growth3_E.GxP.RData")
+load("model/Growth4_E.GxR.RData")
 load("model/Growth5_E.GxPre.RData")
 load("model/Growth6_E.GxPxPre.RData")
+load("model/Growth7_E.GxRxPre.RData")
 
-anova_result_Gro <-anova(Growth0_G, Growth1_E.G, Growth2_E.GxT,  Growth3_E.GxR,  Growth4_E.GxP, Growth5_E.GxPre, Growth6_E.GxPxPre)
+anova_result_Gro <-anova(Growth0_G, Growth1_E.G, Growth2_E.GxT,  Growth3_E.GxP,  Growth4_E.GxR, Growth5_E.GxPre, Growth6_E.GxPxPre, Growth7_E.GxRxPre)
 anova_result_Gro
+# require(knitr)
+# kable(anova_result_Gro, digits = 4, file = "table/anova_table_growth.tex")
+
 ###
 load("model/Senescence0_G.RData")
 load("model/Senescence1_E.G.RData")
 load("model/Senescence2_E.GxT.RData")
-# load("model/Senescence3_E.GxR.RData") did not converge
-load("model/Senescence4_E.GxP.RData")
+load("model/Senescence3_E.GxP.RData") 
+# load("model/Senescence4_E.GxR.RData") did not converge
 # load("model/Senescence5_E.GxPre.RData") did not converge
 # load("model/Senescence6_E.GxPxPre.RData") did not converge
 
 # Perform the ANOVA
-anova_result_Sen <-anova(Senescence0_G, Senescence1_E.G, Senescence2_E.GxT,  Senescence4_E.GxP)
+anova_result_Sen <-anova(Senescence0_G, Senescence1_E.G, Senescence2_E.GxT,  Senescence3_E.GxP)
 anova_result_Sen
-
 ####
 
-#### ask chatgpt to do the table
-
-# library(xtable)
-# 
-# # Convert ANOVA output to a clean dataframe
-# anova_df <- as.data.table(summary(anova_result_Sen))
-# 
-# # Ensure row names are properly formatted for LaTeX
-# anova_df <- cbind(Model = rownames(anova_df), anova_df)  # Move row names to a column
-# rownames(anova_df) <- NULL  # Remove original row names
-# 
-# # Convert to LaTeX table format
-# anova_tex <- xtable(, caption="ANOVA Results for Senescence Models", label="tab:anova_sen")
-# 
-# # Save the LaTeX table to a file
-# sink("table/anova_results_senescence.tex")
-# print(anova_tex, type="latex", include.rownames=FALSE)
-# sink()
+printCoefmat(anova_result_Gro)
 
 ###
 load("data/Growth_data.RData") 
@@ -86,15 +72,15 @@ df <- setDT(df)
 df$Model0 <- fitted(Growth0_G)
 df$Model1 <- fitted(Growth1_E.G)
 # df$Model2 <- fitted(Model2)
-# df$Model3 <- fitted(Model3)
-df$Model4 <- fitted(Growth4_E.GxP)
+df$Model3 <- fitted(Growth3_E.GxP)
+# df$Model4 <- fitted(Model4)
 # df$Model5 <- fitted(Model5)
 df$Model6 <- fitted(Growth6_E.GxPxPre)
 # df$Model7 <- fitted(Model7)
 
 df[,nrow(na.omit(.SD)[!duplicated(genotype.id),]),by=year_site.UID]
 
-p_Growth <- melt.data.table(df, measure.vars = c(paste0("Model",c(0,1,4,6))),variable.name = "Model", value.name = "Fit")
+p_Growth <- melt.data.table(df, measure.vars = c(paste0("Model",c(0,1,3,6))),variable.name = "Model", value.name = "Fit")
 p_Growth$Period <- "Growth"
 p_Growth$period <- NULL
 p_Growth$Max <- NULL
@@ -107,13 +93,13 @@ df <- setDT(df)
 df$Model10 <- fitted(Senescence0_G)
 df$Model11 <- fitted(Senescence1_E.G)
 
-df$Model14 <- fitted(Senescence4_E.GxP)
+df$Model13 <- fitted(Senescence3_E.GxP)
 
 
 
 df[,nrow(na.omit(.SD)[!duplicated(genotype.id),]),by=year_site.UID]
 
-p_Sen <- melt.data.table(df, measure.vars = c(paste0("Model",c(10,11,14))),variable.name = "Model", value.name = "Fit")
+p_Sen <- melt.data.table(df, measure.vars = c(paste0("Model",c(10,11,13))),variable.name = "Model", value.name = "Fit")
 p_Sen$Period <- "Senescence"
 p_Sen$period <- NULL
 p_Sen$Rep <- NULL
@@ -212,53 +198,40 @@ ggplot(data=p,aes(Date, value, shape=Rep))+ ylab("Canopy cover (%)")+
 ################################
 # Extract the coefficients
 require(nlme)
-# ranef(fm7Soy.nlme)
-coefs <- fixed.effects(Growth0_G)
-coefs0 <- as.data.frame(coefs)
-coefs0$Model <- "Model0"
-coefs0$Period <- "Growth"
-coefs0$term <- rownames(coefs0)
 
-coefs <- fixed.effects(Growth1_E.G)
-coefs1 <- as.data.frame(coefs)
-coefs1$Model <- "Model1"
-coefs1$Period <- "Growth"
-coefs1$term <- rownames(coefs1)
+# Function to extract fixed effects with standard errors and confidence intervals
+extract_fixed_effects <- function(model, model_name, period) {
+  coefs <- fixed.effects(model)
+  se <- sqrt(diag(vcov(model)))  # Extract standard errors
+  ci <- intervals(model, which = "fixed")$fixed  # Get confidence intervals
+  
+  df <- data.frame(
+    estimate = coefs,
+    StdError = se,
+    CI_Lower = ci[, "lower"],
+    CI_Upper = ci[, "upper"],
+    Model = model_name,
+    Period = period,
+    term = names(coefs)
+  )
+  
+  return(df)
+}
 
-coefs <- fixed.effects(Growth4_E.GxP)
-coefs4 <- as.data.frame(coefs)
-coefs4$Model <- "Model4"
-coefs4$Period <- "Growth"
-coefs4$term <- rownames(coefs4)
+# Extract coefficients for all models
+coefs0 <- extract_fixed_effects(Growth0_G, "Model0", "Growth")
+coefs1 <- extract_fixed_effects(Growth1_E.G, "Model1", "Growth")
+coefs3 <- extract_fixed_effects(Growth3_E.GxP, "Model4", "Growth")
+coefs6 <- extract_fixed_effects(Growth6_E.GxPxPre, "Model6", "Growth")
+coefs10 <- extract_fixed_effects(Senescence0_G, "Model10", "Senescence")
+coefs11 <- extract_fixed_effects(Senescence1_E.G, "Model11", "Senescence")
+coefs13 <- extract_fixed_effects(Senescence3_E.GxP, "Model13", "Senescence")
 
-coefs <- fixed.effects(Growth6_E.GxPxPre)
-coefs6 <- as.data.frame(coefs)
-coefs6$Model <- "Model6"
-coefs6$Period <- "Growth"
-coefs6$term <- rownames(coefs6)
+# Combine all results into one dataframe
+coefs <- rbind(coefs0, coefs1, coefs3, coefs6, coefs10, coefs11, coefs13)
 
+# Display results
 
-coefs <- fixed.effects(Senescence0_G)
-coefs10 <- as.data.frame(coefs)
-coefs10$Model <- "Model10"
-coefs10$Period <- "Senescence"
-coefs10$term <- rownames(coefs10)
-
-coefs <- fixed.effects(Senescence1_E.G)
-coefs11 <- as.data.frame(coefs)
-coefs11$Model <- "Model11"
-coefs11$Period <- "Senescence"
-coefs11$term <- rownames(coefs11)
-
-coefs <- fixed.effects(Senescence4_E.GxP)
-coefs14 <- as.data.frame(coefs)
-coefs14$Model <- "Model14"
-coefs14$Period <- "Senescence"
-coefs14$term <- rownames(coefs14)
-
-
-coefs <- rbind(coefs0, coefs1, coefs4, coefs6, coefs10, coefs11, coefs14) #
-# coefs$Estimate <- as.data.frame(summary(fm7Soy.nlme)$coef)$Estimate
 unique(coefs$Period)
 
 # coefs$Weather <- NA
@@ -285,7 +258,7 @@ coefs <- merge(coefs, add_gen_id, by="genotype.id")
 coefs$variable[grep("Intercept",coefs$term)]
 # coefs <- subset(coefs, genotype.id%in%c(df$genotype.id))
 
-coefs$estimate <- coefs$coefs
+# coefs$estimate <- coefs$coefs
 # coefs <- merge(coefs, unique(df[,c("plot_grouped_global","year_site.UID")]),by.x = "level",by.y="plot_grouped_global")
 # coefs$level <- NULL
 # coefs <- subset(coefs, paste(year_site.UID, genotype.id)%in%paste(df$year_site.UID, df$genotype.id))
@@ -305,21 +278,17 @@ ggplot(p, aes(x=variable,y=estimate_scaled,color=genotype.id,group=genotype.id))
 coefs_max <- coefs[,list(max=max(estimate),max_genotype=genotype.id[estimate==max(estimate)],min=min(estimate),min_genotype=genotype.id[estimate==min(estimate)]),by=.(variable,Model,Period)]
 coefs_max[is.na(variable),]
 
-# coefs_max1 <- subset(coefs, genotype.id%in%df$genotype.id[df$Location=="Eschikon"])[,list(max=max(estimate),max_genotype=genotype.id[estimate==max(estimate)],min=min(estimate),min_genotype=genotype.id[estimate==min(estimate)]),by=.(variable,Model,Period)]
-# coefs_max <- rbind(coefs_max,coefs_max1)
-
 coefs_max_melt <- melt.data.table(coefs_max, id.vars =c("variable","Model","Period"),measure.vars=c("max_genotype","min_genotype"),value.name = "extreme_genotypes",variable.name = "Extreme")
 coefs_max_melt$variable_extreme <- paste(coefs_max_melt$variable,coefs_max_melt$Extreme) #,coefs_max_melt$Model
 unique(coefs_max_melt$extreme_genotypes)
-coefs_max_melt <- subset(coefs_max_melt, Model%in%c("Model6","Model14"))
-coefs_max_overall <- subset(coefs_max_melt, Model%in%c("Model6","Model14"))
+coefs_max_melt <- subset(coefs_max_melt, Model%in%c("Model6","Model13"))
+coefs_max_overall <- subset(coefs_max_melt, Model%in%c("Model6","Model13"))
 
 
-# p <- melt.data.table(setDT(df), measure.vars = c(paste0("Model",1:3)),variable.name = "Model", value.name = "Fit")
-df_selected <- rbind(subset(df_all,Model%in%c(paste0("Model",c(6)))&Period=="Growth"),  subset(df_all,Model%in%c(paste0("Model",c(11)))&Period=="Senescence"))
+df_selected <- rbind(subset(df_all,Model%in%c(paste0("Model",c(6)))&Period=="Growth"),  subset(df_all,Model%in%c(paste0("Model",c(13)))&Period=="Senescence"))
 p <- merge(df_selected, coefs_max_melt, by.x =c("genotype.id","Model","Period"), by.y=c("extreme_genotypes","Model","Period"),allow.cartesian=TRUE, all.x = T, all.y = F )
 
-p <- subset(p, Model%in%c("Model6","Model14")&genotype.id!="average"&variable_extreme!="average")
+p <- subset(p, Model%in%c("Model6","Model13")&genotype.id!="average"&variable_extreme!="average")
 p_mean <- p[,list(Fit=mean(Fit,na.rm=T)),by=.(time_since_sowing,Model,Period,variable_extreme,genotype.id,year_site.UID)]
 
 
@@ -335,7 +304,7 @@ ggplot(data=p,aes(time_since_sowing, value, color=genotype.id,shape=year_site.UI
 # facet_grid(Model~.,scale="free",switch="both", labeller = label_parsed)
 # geom_smooth(method = "loess",aes(time_since_sowing, value, color=genotype.id))
 
-p <- subset(df_all, Model%in%c("Model6","Model14")&genotype.id%in% coefs_max_melt$extreme_genotypes[coefs_max_melt$Model%in%c("Model6","Model14")])
+p <- subset(df_all, Model%in%c("Model6","Model13")&genotype.id%in% coefs_max_melt$extreme_genotypes[coefs_max_melt$Model%in%c("Model6","Model13")])
 
 ggExtremGrowthCurvesSummary <- ggplot(data=p,aes(time_since_sowing, value, color=genotype.name,shape=year_site.UID, group=genotype.name))+ ylab("Canopy cover (%)")+xlab("Days after sowing (d)")+
   theme_bw()+theme(strip.placement = "outside", strip.background = element_blank(),legend.key.size = unit(0.9, "lines"), legend.position="top",panel.border = element_rect(colour = "black", fill=NA, size=1), panel.grid.minor = element_blank(),panel.grid.major = element_blank(),axis.text.x = element_text(angle = 0, hjust = 0.5),text = element_text(size=9))+
@@ -354,24 +323,6 @@ ggExtremGrowthCurvesSummary
 # ggsave("Soybean_XtremLines_Summary.pdf", width = 170, height = 140, units = "mm", dpi = 100, ggExtremGrowthCurvesSummary)
 
 
-
-df$year_site <- df$year_site.UID #paste(df$Year, df$Location)
-
-coefs_max_year_site <- lapply(unique(df$year_site), function(x) {p_sub <- subset(df, year_site==x)
-coefs_max <- subset(coefs, genotype.id%in%p_sub$genotype.id&Period=="Growth"&Model=="Model2")[,list(max=max(estimate),max_genotype=genotype.id[estimate==max(estimate)],min=min(estimate),min_genotype=genotype.id[estimate==min(estimate)]),by=.(variable,Model,Period)]
-coefs_max$year_site <- p_sub$year_site[1]
-return(coefs_max)
-})
-coefs_max_year_site <- rbindlist(coefs_max_year_site)
-coefs_max_melt <- melt.data.table(coefs_max_year_site, id.vars =c("year_site","variable","Model","Period"),measure.vars=c("max_genotype","min_genotype"),value.name = "extreme_genotypes",variable.name = "Extreme")
-coefs_max_melt$variable_extreme <- paste(coefs_max_melt$variable,coefs_max_melt$Extreme,coefs_max_melt$Period) #,coefs_max_melt$Model
-
-# coefs_max_melt <- coefs_max_melt[grepl("InteractionTemp",coefs_max_melt$variable),]
-coefs_max_melt[,length(unique(variable_extreme)),by=extreme_genotypes]
-Nenv <- coefs_max_melt[,length(unique(year_site)),by=extreme_genotypes]
-subset(Nenv, V1>1)
-subset(coefs_max,Model=="Model2")
-
 p <- df_selected#subset(df_all,Model%in%c(paste0("Model",c(2))))
 
 coefs_max_melt <- coefs_max_overall
@@ -384,41 +335,17 @@ p$plot_grouped_global <- paste(p$plot_grouped_global, p$genotype.id)
 p <- merge(p, coefs_max_melt, by.x =c("genotype.id","Model","Period"), by.y=c("extreme_genotypes","Model","Period"),allow.cartesian=TRUE, all.x = T, all.y = F )
 unique(p$year_site.UID[!is.na(p$variable_extreme)] )
 unique(p$Period)
-# p <- subset(p,Model=="Model1")
-# candidate_genotypes
-ideal_candidate <- c("10025", "10051")
 
-# p_ext <- subset(p, genotype.id%in% coefs_max_melt$extreme_genotypes)
+
+ideal_candidate <- candidate_genotypes# c("10025", "10051")
+unique(p$genotype.name[p$genotype.id%in% ideal_candidate] )
+
 p$variable_extreme[is.na(p$variable_extreme)] <- "average"
 p$variable_extreme[!p$genotype.id%in% c(coefs_max_melt$extreme_genotype,ideal_candidate)] <- "average"
 unique(p$variable_extreme)
 p$genotype.id[!p$genotype.id%in% c(coefs_max_melt$extreme_genotype,ideal_candidate)] <- "average"
 p$genotype.name[!p$genotype.id%in% c(coefs_max_melt$extreme_genotype,ideal_candidate)] <- "average"
-# p_mean <- p[,list(Fit=mean(Fit)),by=.(time_since_sowing,year_site.UID,Model,Period,variable_extreme,genotype.name,genotype.id,Location)]
-# p_mean$genotype.id <- "xtrem"
-# p_mean$genotype.name <- "xtrem"
 
-p[is.na(p$variable_extreme),]
-
-unique(p[,c("genotype.name","genotype.id","variable_extreme")])
-
-# p_av <- subset(p, !genotype.id%in% coefs_max_melt$extreme_genotypes)
-
-# ggGrowthCurves <- lapply(unique(p$Location), function(x) ggplot(data=subset(p_ext, Location==x),aes(time_since_sowing, value, shape=variable_extreme, color=genotype.name))+ ylab("Canopy cover (%)")+
-#   theme_bw()+theme(strip.placement = "outside",axis.title.x = element_blank(), strip.background = element_blank(),legend.key.size = unit(0.9, "lines"), legend.position="top",panel.border = element_rect(colour = "black", fill=NA, size=1), panel.grid.minor = element_blank(),panel.grid.major = element_blank(),axis.text.x = element_text(angle = 0, hjust = 0.5),text = element_text(size=9))+
-#   geom_jitter( size=1.5, alpha=1)+
-#   geom_point(data=subset(p_av, Location==x),aes(time_since_sowing, value), size=0.5, alpha=0.5, color="grey", shape=1)+
-#   scale_shape_manual(values=1:25)+
-#   guides(shape = guide_legend(nrow=4))+
-#   scale_color_manual(values=tol21rainbow)+
-#   geom_line(data=subset(p_mean, genotype.name!="average"&Location==x),aes(time_since_sowing, Fit, color=genotype.name),size=1)+
-#   facet_grid(Location~year_site.UID,scale="free",switch="both", labeller = label_parsed)
-# )
-# 
-# require(cowplot)
-# 
-# ggGrowthCurves <- plot_grid(plotlist=ggGrowthCurves,  ncol = 1, labels = c("AUTO"))  #,vjust=0.5+
-# ggGrowthCurves
 
 p$year_loc <- paste(p$Location, p$year, p$year_site.UID, sep=", ")
 p$Selection <- "Extreme"
@@ -497,7 +424,7 @@ BLUEs <- rbind(SpATsBLUE_overall_CC, SpATsBLUE_yield,fill=T)
 ##########
 
 
-SpATsBLUE_overall <- fread("/home/kellebea/public/Evaluation/Projects/KP0023_legumes/Soybean/201x/SpATScorr-20250123-BLUE_overall_Soybean.csv")
+SpATsBLUE_overall <- fread("/home/kellebea/public/Evaluation/Projects/KP0023_legumes/Soybean/201x/SpATScorr-20250227-BLUE_overall_Soybean.csv")
 # SpATsBLUE_overall <- subset(SpATsBLUE_overall, predicted.values>1) #fix me. is for yield
 yield_variables <- unique(SpATsBLUE_overall$variable)
 # SpATsBLUE_overall <- dcast.data.table(SpATsBLUE_overall, genotype.id+year_site.UID+Date~variable, value.var = "predicted.values")
@@ -516,12 +443,12 @@ yield_coefs <- merge(SpATsBLUE_overall,coefs, by="genotype.id",allow.cartesian=T
 yield_coefs <- setDT(yield_coefs)
 yield_coefs$variable_measured <- yield_coefs$variable.x
 yield_coefs$variable_fitted <- yield_coefs$variable.y
-yield_coefs[,estimate:=remove_outliers(estimate, 2.5),by=.(variable_measured,variable_fitted)]
+# yield_coefs[,estimate:=remove_outliers(estimate, 2.5),by=.(variable_measured,variable_fitted)]
 yield_coefs$variable_fitted[yield_coefs$Model=="Model3"] <- paste0(yield_coefs$variable_fitted[yield_coefs$Model=="Model3"] ,"Mod3")
 
-yield_coefs_wide <- dcast.data.table(subset(yield_coefs, Model%in%c("Model6","Model3","Model14")), genotype.id+variable_measured+value~variable_fitted, value.var = "estimate")
+yield_coefs_wide <- dcast.data.table(subset(yield_coefs, Model%in%c("Model6","Model3","Model13")), genotype.id+variable_measured+value~variable_fitted, value.var = "estimate")
 yield_coefs_wide <- subset(yield_coefs_wide, variable_measured=="Protein.yield")
-plot(yield_coefs_wide$scal.Growth, yield_coefs_wide$InteractionRad.Growth)
+# plot(yield_coefs_wide$scal.Growth, yield_coefs_wide$InteractionPhot.Growth)
 
 var_names <- names(yield_coefs_wide)[4:ncol(yield_coefs_wide)]
 yield_coefs_wide <- na.omit(yield_coefs_wide)
@@ -580,19 +507,21 @@ ggplot(data=p, aes(y=estimate,x=value)) + #ylab(expression("F"["q"]*"'"/"F"["m"]
   geom_text(size=8/ (14/5), color="black", show.legend = F, aes(x=xx, y=Inf,label=r ,vjust=1.2, hjust=0), check_overlap = T)
 
 
-p <- subset(p, Model%in%c("Model6","Model14")&variable_measured%in%c("Protein.yield","End.of.maturity"))
+p <- subset(p, Model%in%c("Model6","Model13")&variable_measured%in%c("Protein.yield","End.of.maturity"))
 p$variable_measured <- gsub("Protein.yield","Protein yield (t/ha)",p$variable_measured)
 p$variable_measured <- gsub("End.of.maturity","Maturity (d)",p$variable_measured)
-p$Model <- gsub("Model14","Model4",p$Model)
+p$Model <- gsub("Model13","Model3",p$Model)
 
+p$Model <- as.factor(p$Model)
+p$Model <- factor(p$Model, levels = levels(p$Model)[2:1])
 p$value[p$variable_measured=="Protein.yield"] <- p$value[p$variable_measured=="Protein.yield"]/100 
 p$variable_fitted <- gsub("Interaction","Gen:",p$variable_fitted )
 
 ggBeanCoef <- ggplot(data=p, aes(x=estimate,y=value)) + #ylab(expression("F"["q"]*"'"/"F"["m"]*"'"))+xlab(expression("Biomass [mg/pot and kg/ha]"))+
   theme_bw()+theme(panel.spacing.x = unit(-0.2, "lines"),plot.title=element_text(hjust=-0.2), strip.placement = "outside",strip.background = element_blank(),legend.key.size = unit(0.6, "lines"),legend.title=element_blank(), legend.position="none",
                    panel.border = element_rect(colour = "black", fill=NA, size=1), panel.grid.minor = element_blank(),panel.grid.major = element_blank(),axis.text.x = element_text(angle = 0, hjust = 0.5),text = element_text(size=8),axis.title=element_blank())+
-  # geom_errorbar(aes(ymin=estimate-SE_trend, ymax=estimate+SE_trend),color="grey90",width=0.000001)  +
-  # geom_errorbarh(aes(xmin=value.1-SD_Biomass, xmax=value.1+SD_Biomass),height=0.000001,color="grey90")+
+  geom_errorbar(aes(ymin=value-standard.errors, ymax=value+standard.errors),color="grey90",width=0.000001)  +
+  geom_errorbarh(aes(xmin=estimate-StdError, xmax=estimate+StdError),height=0.000001,color="grey90")+
   geom_point(aes(x=estimate,y=value,fill=estimate),size=1.5, alpha=0.75)+
   scale_color_gradientn(colours = c("yellow3","darkblue") )+
   # scale_y_continuous(labels = function(x) format(x, scientific = TRUE))+
@@ -614,6 +543,7 @@ first_row <- plot_grid(ggGrowthCurves, second_row,  ncol = 1, rel_heights = c(1,
 
 
 # first_row
+# ggsave("GrowthFitCoef_Soybean.png", width = 180, height = 200, units = "mm", dpi = 100, first_row)
 # ggsave("GrowthFitCoef_Soybean.pdf", width = 180, height = 200, units = "mm", dpi = 100, first_row)
 
 
