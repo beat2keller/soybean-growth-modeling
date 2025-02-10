@@ -8,7 +8,19 @@ tol15rainbow=c("#114477", "#4477AA", "#77AADD", "#117755", "#44AA88", "#99CCBB",
 tol18rainbow=c("#771155", "#AA4488", "#CC99BB", "#114477", "#4477AA", "#77AADD", "#117777", "#44AAAA", "#77CCCC", "#777711", "#AAAA44", "#DDDD77", "#774411", "#AA7744", "#DDAA77", "#771122", "#AA4455", "#DD7788")
 tol21rainbow= c("#771155", "#AA4488", "#CC99BB", "#114477", "#4477AA", "#77AADD", "#117777", "#44AAAA", "#77CCCC", "#117744", "#44AA77", "#88CCAA", "#777711", "#AAAA44", "#DDDD77", "#774411", "#AA7744", "#DDAA77", "#771122", "#AA4455", "#DD7788")
 #####
+add_gen_id <- read.csv("~/public/Evaluation/Projects/KP0023_legumes/Design/2024/GenotypeID_all.csv")
+add_gen_id <- subset(add_gen_id, crop=="soybean")
+add_gen_id <- add_gen_id[,c("id","name")]
+add_gen_id$Genotype_name <- add_gen_id$name
+add_gen_id$genotype.id <- add_gen_id$id
+add_gen_id <- add_gen_id[!duplicated(add_gen_id$Genotype_name),]
 
+###
+add_gen_id <- add_gen_id[!duplicated(add_gen_id$genotype.id),]
+add_gen_id$name <- NULL
+add_gen_id$id <- NULL
+
+####
 setwd("~/public/Evaluation/Projects/KP0023_legumes/CroPyDB_export/export_legumes/")
 
 
@@ -19,6 +31,8 @@ require(plyr)
 CroPyDB_design1 = ldply(fnames_design[-13], function(filename) {
   dum = fread(filename,header=T, sep="," , na.strings=c("NA"))
   names(dum) <- gsub("plot_","plot\\.",names(dum))
+  names(dum) <- gsub("Rep","replication",names(dum))
+  
   #If you want to add the filename as well on the column
   return(dum) })
 detach("package:plyr", unload=TRUE)
@@ -27,6 +41,7 @@ require(plyr)
 CroPyDB_design2 = ldply(fnames_design[13], function(filename) {
   dum = fread(filename,header=T, sep="," , na.strings=c("NA"))
   names(dum) <- gsub("plot_","plot\\.",names(dum))
+  names(dum) <- gsub("rep","plot.replication",names(dum))
   #If you want to add the filename as well on the column
   return(dum) })
 detach("package:plyr", unload=TRUE)
@@ -37,13 +52,17 @@ names(CroPyDB_design2)
 names(CroPyDB_design2)[1] <- "year_site.UID"
 names(CroPyDB_design2)[3] <- "genotype.id"
 names(CroPyDB_design2)[7:10] <- paste0("plot.",names(CroPyDB_design2)[7:10] ) 
-setDT(CroPyDB_design2)[,plot.replication:=1:nrow(.SD),by=.(plot.UID)]
+# setDT(CroPyDB_design2)[,plot.replication:=1:nrow(.SD),by=.(plot.UID)]
 
 CroPyDB_design <- rbind(setDT(CroPyDB_design1),setDT(CroPyDB_design2),fill=T)
 ####
 
 fnames = list.files(pattern="trait_data",recursive=T)
 fnames<-fnames[ !grepl("genotype_trait_data_",fnames) ]
+fnames <- fnames[!grepl("FPSB015",fnames)]
+fnames <- fnames[!grepl("FPSB016",fnames)]
+
+
 fnames
 
 require(plyr)
@@ -55,8 +74,17 @@ detach("package:plyr", unload=TRUE)
 CroPyDB_export
 
 #####
-fnames_add = list.files(pattern="_data",recursive=T,path = "~/public/Evaluation/FIP/RW/2021/SB/RefTraits/db/",full.names = T)
-fnames_add <- fnames_add[3:5]
+fnames_add1 = list.files(pattern="_data",recursive=T,path = "~/public/Evaluation/FIP/RW/2021/SB/RefTraits/db/",full.names = T)
+fnames_add1 <- fnames_add1[c(1,3,5,6)]
+
+
+fnames_add2 = list.files(pattern="_data",recursive=T,path = "~/public/Evaluation/FIP/RW/2022/SB016/RefTraits/db/",full.names = T)
+fnames_add2 <- c(fnames_add2[grepl("_corr",fnames_add2)],fnames_add2[grepl("moisture",fnames_add2)])
+# fnames_add2 <- fnames_add2[c(16,17)]
+fnames_add2
+
+fnames_add <- c(fnames_add1,fnames_add2)
+
 # moisture<- read.csv("~/public/Evaluation/FIP/RW/2021/SB/RefTraits/db/moisture/FPSB015_moisture_data.csv")
 # oil<- read.csv("~/public/Evaluation/FIP/RW/2021/SB/RefTraits/db/oil/FPSB015_oil_data.csv")
 require(plyr)
@@ -68,24 +96,36 @@ CroPyDB_export_add = ldply(fnames_add, function(filename) {
 detach("package:plyr", unload=TRUE)
 # write.csv(moisture, "~/public/Evaluation/FIP/RW/2021/SB/RefTraits/db/moisture/FPSB015_moisture_data-copy.csv", row.names = F, quote = F)
 names(CroPyDB_export_add) <- gsub("_","\\.",names(CroPyDB_export_add))
-names(CroPyDB_export_add)[7] <- "trait.label"
+# names(CroPyDB_export_add)[7] <- "trait.label"
 CroPyDB_export_add <- setDT(CroPyDB_export_add)
 unique(CroPyDB_export_add$filename)
 CroPyDB_export_add$trait.name <- NA
 CroPyDB_export_add$trait.name[grepl("yield",CroPyDB_export_add$filename)] <- "Yield"
 CroPyDB_export_add$trait.name[grepl("tkw",CroPyDB_export_add$filename)] <- "TKW"
 CroPyDB_export_add$trait.name[grepl("protein",CroPyDB_export_add$filename)] <- "Protein content"
+CroPyDB_export_add$trait.name[grepl("moisture",CroPyDB_export_add$filename)] <- "Moisture"  ## Yield should be corrected for moisture
+# CroPyDB_export_add$trait.name[grepl("oil",CroPyDB_export_add$filename)] <- "Oil_content"
 
 CroPyDB_export_add$timestamp <- "20211001T0100+0100"
-  
-CroPyDB_export <- setDT(CroPyDB_export)
+CroPyDB_export_add$timestamp[grepl("FPSB016",CroPyDB_export_add$plot.UID)] <- "20221001T0100+0100"
 
+# moisture <- dcast.data.table(CroPyDB_export_add, ...~trait.name)
+# moisture <- moisture[,c("plot.UID","Moisture")] 
+# moisture <- merge(moisture, add_gen_id, by="genotype.id")
+
+CroPyDB_export <- setDT(CroPyDB_export)
 CroPyDB_export <- rbind(CroPyDB_export,CroPyDB_export_add ,fill=T)
+unique(CroPyDB_export$trait.name)
 #####
 
 
 CroPyDB_export$variable <- CroPyDB_export$trait.name
 CroPyDB_export$variable <- gsub("Thousand kernel weight","TKW",CroPyDB_export$variable)
+CroPyDB_export$plot.UID <- gsub("FPSB001","FPSB01",CroPyDB_export$plot.UID)
+
+CroPyDB_design$plot.UID <- gsub("FPSB0151","FPSB015",CroPyDB_design$plot.UID)
+CroPyDB_design$plot.row[is.na(CroPyDB_design$plot.row)] <- CroPyDB_design$plot.row_lot[is.na(CroPyDB_design$plot.row)] 
+CroPyDB_design$plot.range[is.na(CroPyDB_design$plot.range)] <- CroPyDB_design$plot.range_lot[is.na(CroPyDB_design$plot.range)] 
 
 levels(as.factor(CroPyDB_export$variable))
 
@@ -99,30 +139,19 @@ CroPyDB_export_all <- merge(CroPyDB_export, CroPyDB_design[,c("plot.UID","plot.r
 
 # CroPyDB_design$plot.UID[grepl("FPSB007",CroPyDB_design$plot.UID)]
 # unique(CroPyDB_export$variable[grepl("FPSB007",CroPyDB_export$plot.UID)])
-
-# CroPyDB_export_all[grepl("FPSB007",CroPyDB_export_all$plot.UID),]
+# CroPyDB_export_all[grepl("FPSB015",CroPyDB_export_all$plot.UID),]
 
 levels(as.factor(CroPyDB_export_all$variable))
 names(CroPyDB_export_all) <- gsub("plot\\.", "", names(CroPyDB_export_all) )
 names(CroPyDB_export_all) 
 
 
-add_gen_id <- read.csv("~/public/Evaluation/Projects/KP0023_legumes/Design/2024/GenotypeID_all.csv")
-add_gen_id <- subset(add_gen_id, crop=="soybean")
-add_gen_id <- add_gen_id[,c("id","name")]
-add_gen_id$Genotype_name <- add_gen_id$name
-add_gen_id$genotype.id <- add_gen_id$id
-add_gen_id <- add_gen_id[!duplicated(add_gen_id$Genotype_name),]
-
-###
-add_gen_id <- add_gen_id[!duplicated(add_gen_id$genotype.id),]
-add_gen_id$name <- NULL
-add_gen_id$id <- NULL
+########
 CroPyDB_export_all <- merge(CroPyDB_export_all, add_gen_id, by="genotype.id")
 CroPyDB_export_all$variable <- gsub(" ", ".", CroPyDB_export_all$variable  )
 unique(CroPyDB_export_all$variable )
 
-Growth_traits_melt <- subset(CroPyDB_export_all, variable %in% c("Yield","Protein.content","TKW"))
+Growth_traits_melt <- subset(CroPyDB_export_all, variable %in% c("Yield","Protein.content","TKW","Moisture","End.of.maturity"))
 Growth_traits_melt$timestamp <- gsub("T"," ",Growth_traits_melt$timestamp)
 Growth_traits_melt$Datetime <- as.POSIXct(Growth_traits_melt$timestamp,format = "%Y%m%d %H%M%z")
 Growth_traits_melt$Datetime
@@ -203,14 +232,14 @@ Traits_2016_melt$variable.1 <- NULL
 Traits_2016_melt <- Traits_2016_melt[!is.na(Traits_2016_melt$value),]
 
 ###
-#2017 is in data.base; but not yield
+#2017 SB007 is in data.base; but not yield
 ############# 2017 Ref traits
 yield_SB008_2017 <- read_excel(skip=1,"/home/kellebea/public/Evaluation/FIP/2017/SB007/Ref_Traits/FPSB007_Ernterohdaten.xlsx",sheet = 1)
 yield_SB008_2017 <- as.data.table(yield_SB008_2017)
 names(yield_SB008_2017)
 names(yield_SB008_2017)[4] <- "Yield" 
 names(yield_SB008_2017)[1] <- "Plot_ID" 
-yield_SB008_2017$Yield <- yield_SB008_2017$Yield/10
+yield_SB008_2017$Yield <- yield_SB008_2017$Yield/7.5/1000/1000*10000 ## 5 m x 1.5 m plots; 7.5m2. yield in t=10^6grams per ha=10000 m2
 yield_SB008_2017$Date <- as.POSIXct("2017-06-01", tz="Europe/Berlin") # not true
 
 design_2017 <- read_excel("/home/kellebea/public/Evaluation/FIP/2017/Feldbuch/SB/Design_FPSB2017.xlsx", sheet = 4)
@@ -242,6 +271,13 @@ Traits_2016_17_melt <- merge(Traits_2016_17_melt, add_gen_id, by="genotype.id")
 
 ###
 traits_cast1 <- Growth_traits_melt[,c("plot.UID","value","variable","Genotype_name","genotype.id","year_site.UID","Row","Range","Rep","Date")]
+traits_cast1[traits_cast1$variable=="Yield"&traits_cast1$value>10,] 
+subset(traits_cast1,genotype.id=="10098"&variable=="Yield")
+traits_cast1$value[traits_cast1$variable=="Yield"&traits_cast1$value>10&!is.na(traits_cast1$value)] <-traits_cast1$value[traits_cast1$variable=="Yield"&traits_cast1$value>10&!is.na(traits_cast1$value)] /10 # likely a mistake
+
+
+# unique(traits_cast1$year_site.UID)
+subset(traits_cast1, year_site.UID=="FPSB016")
 traits_cast <- dcast.data.table(traits_cast1, ...~variable)
 traits_cast$value <- traits_cast$Protein.content*traits_cast$Yield
 traits_cast$variable <- "Protein.yield"
@@ -408,13 +444,14 @@ year_site.UIDs <- unique(dat$year_site.UID)[order(unique(dat$year_site.UID))]
 year_site.UIDs
 p <- subset(dat, year_site.UID%in%year_site.UIDs[1:15])
 p <- subset(p, variable%in%c(traits)&value!=0)
+oo <- subset(p, year_site.UID=="FPSB015")
 
+unique(p$year_site.UID)
 ###
 
 p$value[p$value==Inf] <- NA
-p$value[p$variable=="Yield"&p$value>7] <- NA
 
-###
+##
 p <- setDT(p)
 p <- droplevels(p)
 p <- p[,value_dup:=duplicated(value), by=.(variable,year_site.UID,Date,genotype.id)]
@@ -502,24 +539,20 @@ hist(p_h2_all$h2)
 p <- subset(p_h2_all)
 ggplot(data=p, aes(x=year_site.UID, y=h2) ) +
   theme_bw()+theme(axis.line = element_line(colour = "black"),panel.background = element_blank(),strip.placement = "outside", plot.title=element_text(hjust=-0.2),strip.background = element_blank(),legend.key=element_rect(size=0.6,color="white"),legend.key.size = unit(0.6, "lines"),legend.title=element_blank(), legend.position="top", panel.grid.minor = element_blank(),panel.grid.major = element_blank(),axis.text.x =element_text(angle = 0, hjust = 0.5),text = element_text(size=12),strip.text = element_text(size = 12), axis.title = element_text(size = 12))+
-  geom_jitter()+
+  geom_point()+
   # geom_boxplot( outlier.colour = NA, alpha=0.75)+
   facet_grid(variable~.)
 
-# write.csv(BLUE, "Soybean/201x/SpATScorr-20241108-BLUE_Soybean.csv", row.names = F)
-# setwd("/home/kellebea/public/Evaluation/Projects/KP0023_legumes/Soybean/201x/")
-# SpATsBLUE <- read.csv("Soybean/201x/SpATScorr-20241108-BLUE_Soybean.csv")
+# write.csv(BLUE, "Soybean/201x/SpATScorr-20250227-BLUE_Soybean.csv", row.names = F)
+
+# SpATsBLUE <- read.csv("Soybean/201x/SpATScorr-20250227-BLUE_Soybean.csv")
 ###########
 
 
 
 
 ######
-p1 <- subset(dat, variable%in%c("Yield","Protein.content","Protein.yield")&year_site.UID%in%year_site.UIDs[1:15])
-
-p1$value[p1$variable=="Yield"&p1$value>7] <- NA
-
-
+p1 <- subset(dat, variable%in%c("Yield","Protein.content","Protein.yield","End.of.maturity")&year_site.UID%in%year_site.UIDs[1:15])
 p1$year_site.UID <- "AcrossAllEnv"
 p1 <- droplevels(p1)
 p1$variable2 <- p1$variable
@@ -533,7 +566,7 @@ SpATsBLUE_overall <- SpatsAcrossAllEnv
 SpATsBLUE_overall <- merge(SpATsBLUE_overall, add_gen_id, by="genotype.id")
 SpATsBLUE_overall$Genotype_name <- SpATsBLUE_overall$genotype.name
 
-# write.csv(SpATsBLUE_overall, "Soybean/201x/SpATScorr-20241108-BLUE_overall_Soybean.csv", row.names = F)
+# write.csv(SpATsBLUE_overall, "Soybean/201x/SpATScorr-20250227-BLUE_overall_Soybean.csv", row.names = F)
 
 p_h2_all <-  unique(SpATsBLUE_overall[,c("h2","year_site.UID","Date","N_Datapt_removed","variable")])
 hist(p_h2_all$h2)
