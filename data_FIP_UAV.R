@@ -606,6 +606,137 @@ ggplot(Data_rows_exp, aes(color=genotype.id))+
   geom_point(aes(x=0, y=Plot_width))+
   facet_wrap(.~Date)
 
+
+make_loop_plots_with_plot_edges <- function(investigate, Pattern = "_segmentation.png", ncol_plot = 3) {
+  library(magick)
+  library(grid)
+  library(cowplot)
+  library(ggplot2)
+  library(data.table)
+  library(gridExtra)
+  
+  # Ensure year is properly set
+  year <- as.character(investigate$Year)[1]
+  
+  make_plots <- function(files_to_plot, ncol_plot) {
+    if (nrow(files_to_plot) > 0) {
+      plots <- lapply(files_to_plot$File, function(file) {
+        if (is.na(file)) {
+          grid::textGrob("No Data", gp = gpar(fontsize = 10, col = "grey"))
+        } else {
+          print(paste("Read", file))
+          img <- image_read(file)
+          # Convert image to a data array
+          
+          
+          # img_data <- image_data(img)
+          # 
+          # img_matrix <- as.numeric(img_data)   # Normalize to range 0-1
+          # 
+          # if(length(img_matrix[round(img_matrix, 1) == 0.6] )<10){
+            img <- image_convert(img, colorspace = "Gray")
+            img_data <- image_data(img)
+            img_matrix <- as.numeric(img_data)   # Normalize to range 0-1
+            img_matrix[round(img_matrix, 1) == 0] <- 1 
+            img_matrix[round(img_matrix, 1) == 0.7] <- 0  # Set 0.5555 to 1
+            img_matrix[round(img_matrix, 1) == 0.8] <- 0  # Set 0.5555 to 1
+            
+            # }else{
+            # # hist(img_matrix)
+            # # Apply transformations
+            # # img_matrix[round(img_matrix, 1) == 1] <- 0  # Set 1 to 0
+            # img_matrix[round(img_matrix, 1) == 0.6] <- 1  # Set 0.5555 to 1
+            # img_matrix[round(img_matrix, 1) == 0] <- 0 
+            # # Convert back to integer scale (0-255)
+            # }
+            # 
+
+          # Convert back to magick image
+          img <- image_read(img_matrix)
+
+          imagePNG <- image_scale(img, "50%")
+          
+          image_info_df <- image_info(img)  # Extract image metadata
+          
+          maxY <- image_info_df$height  # Correctly extract image height
+          maxX <- image_info_df$width   # Correctly extract image width
+          
+          g <- rasterGrob(imagePNG, interpolate = T)
+          
+          points_data <- data.frame(
+            x = c(0, 0, maxX, maxX),
+            y = c(
+              maxY - investigate$min_y_at_x0[1], 
+              maxY - investigate$max_y_at_x0[1], 
+              maxY - investigate$min_y_at_xmax[1], 
+              maxY - investigate$max_y_at_xmax[1]
+            )
+          )
+          
+          ggimage_plot <- ggplot(points_data, aes(x,y),geom="blank") +
+            scale_y_continuous(limits=c(0,maxY)) +
+            scale_x_continuous(limits=c(0,maxX)) +
+            theme(legend.position="none",axis.text = element_blank(), axis.ticks = element_blank(), axis.title= element_blank(),
+                  plot.margin=unit(c(0,0,0,0),"line")) +
+            annotation_custom(g, xmin=0, xmax=maxX, ymin=0, ymax=maxY) +
+            # geom_image(image=file)+
+            geom_point(aes(x,y), color="darkred", size=3,shape=13)+
+            coord_fixed()
+          
+          return(ggimage_plot)
+        }
+      })
+      
+      gg <- plot_grid(plotlist = plots, ncol = ncol_plot, labels = as.character(files_to_plot$TitleNr), label_size = 16, label_colour = "#77AADD")
+      title <- ggdraw() + draw_label(paste("Plot:", files_to_plot$UID[1]), fontface = 'bold', size = 16)
+      final_plot <- plot_grid(title, gg, ncol = 1, rel_heights = c(0.1, 1))
+      return(final_plot)
+    }
+  }
+  
+  ToPlot <- data.table(
+    File = paste0("~/public/Evaluation/Projects/KP0023_legumes/Soybean/",year, gsub("\\.\\/","\\/",investigate$Filename_org)), 
+    TitleNr = investigate$Date, 
+    UID = investigate$plot.UID, 
+    genotype.name = investigate$genotype.name
+  )
+  
+  ToPlot <- ToPlot[order(UID, TitleNr)]
+  
+  if (nrow(ToPlot) == 0) {
+    print(paste("Skip", year))
+  } else {
+    gg_list <- lapply(unique(ToPlot$UID), function(xx) make_plots(ToPlot[UID == xx], ncol_plot))
+    
+    NperPlot <- ToPlot[, .(N = .N), by = .(UID)]
+    NperPlot[, N_ceiling := ceiling(N / ncol_plot)]
+    nrow_plot_overall <- sum(NperPlot$N_ceiling)
+    
+    final_plot <- arrangeGrob(grobs = gg_list, ncol = 1)
+    title <- ggdraw() + draw_label(paste("Breeding line:", ToPlot$genotype.name[1]), fontface = 'bold', size = 18)
+    final_plot <- plot_grid(title, final_plot, ncol = 1, rel_heights = c(0.05, 1))
+    
+    ggsave(
+      filename = paste0(year, Pattern, ToPlot$genotype.name[1], "_checks.png"),
+      plot = final_plot,
+      dpi = 150,
+      units = "mm",
+      height = nrow_plot_overall * 60 + 1,
+      width = 90 * ncol_plot
+    )
+  }
+}
+
+
+investigate <- subset(Data_rows_exp, Year==2021&genotype.name=="Protéix")
+investigate <- subset(investigate, plot.UID==investigate$plot.UID[1])
+
+# make_loop_plots_with_plot_edges(investigate, Pattern = "_segmentation.png", ncol_plot = 6) 
+
+
+######
+
+
 p <- Data_rows_exp[!is.na(Data_rows_exp$Sum_Pixel_plot),]
 p <- p[duplicated(paste(p$Sum_Pixel_plot,p$plot.UID)),]
 
@@ -1198,8 +1329,113 @@ ggplot(data=p, aes(Date, value_relative))+ ylab("Canopy cover (%)")+
 
 
 
+library(dplyr)
+library(ggplot2)
+
+# Filter data
+p <- subset(Data_canopy_cover_Max, variable %in% c("Canopy_cover"))
 
 
+genotype_order <- p[,list(mean_value = mean(value_relative, na.rm = TRUE)),by=genotype.id]
+genotype_order <- genotype_order[order(genotype_order$mean_value,decreasing =T),]
+# Convert genotype.id to a factor with the desired order
+p$genotype.id <- factor(p$genotype.id, levels = genotype_order$genotype.id)
+
+# Ensure Year and year_site.UID are also ordered factors
+p$Year <- factor(p$Year, levels = sort(unique(p$Year)))
+p$year_site.UID <- factor(p$year_site.UID, levels = sort(unique(p$year_site.UID)))
+
+p$genotype.id <- as.numeric(as.character(p$genotype.id))  # Ensure genotype.id is numeric
+
+ggCC <- ggplot(data=p, aes(Date, value_relative, color=genotype.id)) +
+  ylab("Canopy cover (%)") +
+  theme_bw() +
+  theme(strip.placement = "outside",
+        axis.title.x = element_blank(),
+        strip.background = element_blank(),
+        legend.key.size = unit(0.9, "lines"),
+        legend.position="top",
+        panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.minor = element_blank(),
+        panel.grid.major = element_blank(),
+        axis.text.x = element_text(angle = 0, hjust = 0.5),
+        text = element_text(size=9)) +
+  geom_point(size=1.5, alpha=0.5, aes(shape=Period)) +
+  geom_vline(size=0.5, alpha=1, aes(xintercept = Max_variable_date)) +
+  scale_color_gradientn(name="Breeding lines", colors=c(tol4qualitative)) +  # Customize colors
+  geom_smooth(method="loess", formula = y ~ x, alpha=0.1, size=0.5, show.legend = F, aes(group=genotype.id)) +
+  facet_wrap(location ~ paste(Year, year_site.UID), scale="free", switch="both")
+
+# ggCC
+# ggsave("Datapoints_CC_loess_soybean.pdf",  width = 170, height = 180, units = "mm")
+
+
+unique_lines <- unique(Data_canopy_cover_Max[,c("genotype.id","year_site.UID","Year","location")])
+# unique_lines$year_loc <- paste(unique_lines$Year, unique_lines$location)
+unique_lines[,nrow(.SD),by=Year]
+unique_lines$Year_grouped <- unique_lines$Year
+
+unique_lines$Year_grouped[unique_lines$Year=="2015"] <- "2015-16"
+unique_lines$Year_grouped[unique_lines$Year=="2016"] <- "2015-16"
+
+
+unique_lines$Year_grouped[unique_lines$Year=="2017"] <- "2017-20"
+unique_lines$Year_grouped[unique_lines$Year=="2018"] <- "2017-20"
+
+unique_lines$Year_grouped[unique_lines$Year=="2019"] <- "2017-20"
+unique_lines$Year_grouped[unique_lines$Year=="2020"] <- "2017-20"
+
+unique_lines$Year_grouped[unique_lines$Year=="2022"] <- "2021-22"
+unique_lines$Year_grouped[unique_lines$Year=="2021"] <- "2021-22"
+
+unique_lines$Year_grouped <- paste(unique_lines$Year_grouped,unique_lines$location)
+unique(unique_lines$Year_grouped)
+
+library(ggVennDiagram)
+
+
+# Convert data.table into a list of sets for Venn diagram
+venn_data <- unique_lines[, .(genotype_list = list(unique(genotype.id))), by = Year_grouped]
+venn_list <- setNames(venn_data$genotype_list, venn_data$Year_grouped)
+
+# Plot the Venn diagram
+ggVenn <- ggVennDiagram(
+  venn_list, 
+  label_alpha = 0, set_size=2,
+  label_size =2  # Decrease label text inside the Venn diagram
+) +  
+  theme_bw() +
+  theme(
+    strip.placement = "outside",
+    axis.title = element_blank(),
+    axis.text = element_blank(),
+    strip.background = element_blank(),
+    legend.key.size = unit(0.9, "lines"),
+    legend.position = "none",
+    panel.border = element_rect(colour = "black", fill = NA, size = 1),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    text = element_text(size = 1),  # Decrease global text size
+    plot.title = element_text(size = 1),  # Decrease title size
+    legend.text = element_text(size = 1),  # Decrease legend text size
+    legend.title = element_text(size = 1),  # Decrease legend title size
+    strip.text = element_text(size = 1)  # Decrease facet strip text size
+  ) +
+  scale_fill_gradient(low = "white", high = tol5qualitative[1]) 
+
+ggVenn
+
+
+require(cowplot)
+second_row <- plot_grid(ggVenn, NULL,  ncol = 2, rel_widths = c(0.5,1), labels = c(""))  #,vjust=0.5+
+
+first_row <- plot_grid(ggCC, second_row,  ncol = 1, rel_heights = c(1,0.5), labels = c("A","B"))  #,vjust=0.5+
+
+
+# ggsave("Datapoints_CC_loess_Venn_soybean.pdf", width = 180, height = 200, units = "mm", dpi = 100, first_row)
+
+
+########
 
 p <- subset(Data_senescence_curve, variable%in%c("Canopy_cover"))
 

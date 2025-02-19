@@ -43,6 +43,8 @@ load("model/Growth5_E.GxPre.RData")
 load("model/Growth6_E.GxPxPre.RData")
 load("model/Growth7_E.GxRxPre.RData")
 
+summary(anova(Growth6_E.GxPxPre))
+
 anova_result_Gro <-anova(Growth0_G, Growth1_E.G, Growth2_E.GxT,  Growth3_E.GxP,  Growth4_E.GxR, Growth5_E.GxPre, Growth6_E.GxPxPre, Growth7_E.GxRxPre)
 anova_result_Gro
 # require(knitr)
@@ -76,11 +78,11 @@ df$Model3 <- fitted(Growth3_E.GxP)
 # df$Model4 <- fitted(Model4)
 # df$Model5 <- fitted(Model5)
 df$Model6 <- fitted(Growth6_E.GxPxPre)
-# df$Model7 <- fitted(Model7)
+df$Model7 <- fitted(Growth7_E.GxRxPre)
 
 df[,nrow(na.omit(.SD)[!duplicated(genotype.id),]),by=year_site.UID]
 
-p_Growth <- melt.data.table(df, measure.vars = c(paste0("Model",c(0,1,3,6))),variable.name = "Model", value.name = "Fit")
+p_Growth <- melt.data.table(df, measure.vars = c(paste0("Model",c(0,1,3,6,7))),variable.name = "Model", value.name = "Fit")
 p_Growth$Period <- "Growth"
 p_Growth$period <- NULL
 p_Growth$Max <- NULL
@@ -125,6 +127,28 @@ p <- p_Growth
 p$Date <- p$date
 p <- setDT(p)[,Rep:=as.numeric(as.factor(UID)),by=.(genotype.id,date,year_site.UID)]
 p$Rep <- paste("Rep",p$Rep )
+
+compute_r2 <- function(actual, predicted) {
+  # Check if lengths match
+  if (length(actual) != length(predicted)) {
+    stop("Error: The length of actual and predicted values must be the same.")
+  }
+  
+  # Total Sum of Squares (SST)
+  SST <- sum((actual - mean(actual))^2)
+  
+  # Residual Sum of Squares (SSE)
+  SSE <- sum((actual - predicted)^2)
+  
+  # Compute R-squared
+  r2 <- 1 - (SSE / SST)
+  
+  return(r2)
+}
+
+p[,compute_r2(value, Fit),by=Model]
+
+
 
 ggFit <- ggplot(data=p,aes(Date, value, color=genotype.id,shape=Rep))+ ylab("Canopy cover (%)")+
   theme_bw()+theme(strip.placement = "outside",axis.title.x = element_blank(), strip.background = element_blank(),legend.key.size = unit(0.9, "lines"), legend.position="none",panel.border = element_rect(colour = "black", fill=NA, linewidth=1), panel.grid.minor = element_blank(),panel.grid.major = element_blank(),axis.text.x = element_text(angle = 0, hjust = 0.5),text = element_text(size=9))+
@@ -1083,7 +1107,10 @@ make_loop_plots  <-  function(year,investigate,Pattern= "_segmentation.png",ncol
         # Calculate the number of pixels to crop from the top and bottom
         crop_pixels_top <- floor((10 / 100) * img_height)
         crop_pixels_bottom <- ceiling((10 / 100) * img_height)
-        
+        if(Pattern%in%c("pixels.png","MaskPixels.png")){
+          crop_pixels_bottom <- 0
+          crop_pixels_top <- 0
+        }
         # Crop the image from top and bottom
         img <- image_crop(img, geometry = paste(img_width, img_height - crop_pixels_top - crop_pixels_bottom, "+0+", crop_pixels_top, sep = "x"))
         
@@ -1094,8 +1121,8 @@ make_loop_plots  <-  function(year,investigate,Pattern= "_segmentation.png",ncol
       nrow_plot <- ceiling(length(plots) / ncol_plot)
       
       # Arrange plots with date labels
-      gg <- plot_grid(plotlist = plots, ncol=ncol_plot, labels = as.character(png_files_exclude$TitleNr),label_size = 6)
-      title <- ggdraw() + draw_label(paste("Plot:",png_files_exclude$UID[1]), fontface='bold',size = 6)
+      gg <- plot_grid(plotlist = plots, ncol=ncol_plot, labels = as.character(png_files_exclude$TitleNr),label_size = 16)
+      title <- ggdraw() + draw_label(paste("Plot:",png_files_exclude$UID[1]), fontface='bold',size = 16)
       gg <- plot_grid(title, gg, ncol=1, rel_heights=c(0.1, 1))
       
       return(gg)
@@ -1121,7 +1148,7 @@ make_loop_plots  <-  function(year,investigate,Pattern= "_segmentation.png",ncol
     print(nrow_plot_overall)
     library(gridExtra)
     final_plot <- arrangeGrob(grobs =gg_list, ncol=1)
-    title <- ggdraw() + draw_label(paste("Breeding line:",ToPlot$genotype.name[1]), fontface='bold',size = 8)
+    title <- ggdraw() + draw_label(paste("Breeding line:",ToPlot$genotype.name[1]), fontface='bold',size = 18)
     final_plot <- plot_grid(title, final_plot, ncol=1, rel_heights=c(0.1, 1))
     ggsave(paste0(year2,Pattern,ToPlot$genotype.name[1],"_checks.png"), plot = final_plot, dpi = 150, units = "mm", height = nrow_plot_overall*60+1, width=90*ncol_plot)
     }
@@ -1153,10 +1180,39 @@ example <- subset(example, measuremnt%in%1:4)
 example$Year2 <- example$Year
 
 # example[,nrow(.SD),by=.(Year2,genotype.id)]
+# example <- subset(example, Year==2021)
+# example <- subset(example, plot.UID==example$plot.UID[1])
 
+# example[, make_loop_plots(Year[1], .SD, Pattern="_pixels.png",ncol_plot = 6), by=.(Year2,genotype.id)]
+example[, make_loop_plots(Year[1], .SD, Pattern="_q90.jpg",ncol_plot = 6), by=.(Year2,genotype.id)]
 
-example[, make_loop_plots(Year[1], .SD, Pattern="_q90.jpg",ncol_plot = 4), by=.(Year2,genotype.id)]
+#####
+library(magick)
+library(ggplot2)
+library(cowplot)
+library(grid)
 
+# Load two images
+img1 <- image_read("2021_q90.jpgProtéix_checks.png")
+img2 <- image_read("2021_segmentation.pngProtéix_checks.png")
+
+# Convert images to rasterGrob for ggplot
+g1 <- rasterGrob(img1, interpolate = TRUE)
+g2 <- rasterGrob(img2, interpolate = TRUE)
+
+# Create ggplot objects for each image
+plot1 <- ggplot() +
+  annotation_custom(g1, xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf) +
+  theme_void()
+
+plot2 <- ggplot() +
+  annotation_custom(g2, xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf) +
+  theme_void()
+
+# Arrange the plots underneath each other
+final_plot <- plot_grid(plot1, plot2, ncol = 1, align = "v",labels = "AUTO")
+
+ggsave("Example_plots_2021.png" , final_plot,  width = 170, height = 120, units = "mm")
 ####
 ####
 ####
