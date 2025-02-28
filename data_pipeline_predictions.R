@@ -64,6 +64,10 @@ weather_scenario_mean$Year <- "Average"
 weather_scenario_warmest <- subset(weathter_data_sub, Location=="Delley"&Year=="2015")
 weather_scenario_warmest$scenario <- "Warm"
 
+weather_scenario_hot <- weather_scenario_warmest
+weather_scenario_hot$Measure_14 <- 1.1*weather_scenario_hot$Measure_14 
+weather_scenario_hot$scenario <- "Hot (scenario)"
+
 weather_scenario_coldest <- subset(weathter_data_sub, Location=="Delley"&Year=="2021") # really?
 weather_scenario_coldest$scenario <- "Cold"
 
@@ -74,7 +78,7 @@ weather_scenario_dry <- subset(weathter_data_sub, Location=="Delley"&Year=="2022
 weather_scenario_dry$scenario <- "Dry"
 
 
-weathter_data_scenarios <- rbind(weather_scenario_mean,weather_scenario_warmest, weather_scenario_coldest, weather_scenario_rainy, weather_scenario_dry)
+weathter_data_scenarios <- rbind(weather_scenario_mean,weather_scenario_warmest, weather_scenario_coldest, weather_scenario_rainy, weather_scenario_dry, weather_scenario_hot)
 # new_soybean <- merge(new_soybean, mean_vals, by = "genotype.id", all.x = TRUE)
 
 
@@ -129,12 +133,14 @@ model_df$Fit <- sin(model_df$fit)^2
 p <- model_df
 
 
+tol6qualitative=c("#332288", "#88CCEE", "#117733", "#DDCC77", "#CC6677","#AA4499")
 
 require(ggplot2)
 
 ggFit <- ggplot(data=p,aes(time_since_sowing, Fit, color=scenario, shape=scenario))+ ylab("Canopy cover (%)")+
   theme_bw()+theme(strip.placement = "outside",axis.title.x = element_blank(), strip.background = element_blank(),legend.key.size = unit(0.9, "lines"), legend.position="top",panel.border = element_rect(colour = "black", fill=NA, linewidth=1), panel.grid.minor = element_blank(),panel.grid.major = element_blank(),axis.text.x = element_text(angle = 0, hjust = 0.5),text = element_text(size=9))+
-  geom_point(size=2, alpha=0.5)+
+  geom_point(size=2, alpha=1)+
+  scale_color_manual(values = tol6qualitative)+
   # geom_smooth(aes(Date, Fit,group=genotype.id),size=0.1)+
   facet_grid(.~genotype.id,scale="free",switch="both", labeller = label_parsed)
 ggFit
