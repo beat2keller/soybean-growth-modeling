@@ -328,7 +328,21 @@ dynamic_vector <- append(dynamic_Asym, c(dynamic_xmid, dynamic_scal))
 ##
 start_time <- Sys.time()
 
-Growth7_E.GxRxPre <- update(cc_rf_scal,
+Growth7_E.GxPxPre <- update(cc_rf_scal,
+                            fixed = list(Asym ~ genotype.id+platform,
+                                         xmid ~ avg_temperature_14 + avg_precipitation_14 + avg_radiation_14,
+                                         scal ~ genotype.id*(avg_photothermal_14+avg_precipitation_14)+platform),
+                            start = dynamic_vector, control = list (msVerbose = TRUE,
+                                                                    maxIter = 200,
+                                                                    msMaxIter = 200))
+end_time <- Sys.time()
+print(end_time - start_time)
+
+save(Growth7_E.GxPxPre, file=paste0("model/", Period, "7_E.GxRxPre.RData"))
+######
+start_time <- Sys.time()
+
+Growth8_E.GxRxPre <- update(cc_rf_scal,
                             fixed = list(Asym ~ genotype.id+platform,
                                          xmid ~ avg_temperature_14 + avg_precipitation_14 + avg_radiation_14,
                                          scal ~ genotype.id*(avg_radiation_14+avg_precipitation_14)+platform),
@@ -338,8 +352,8 @@ Growth7_E.GxRxPre <- update(cc_rf_scal,
 end_time <- Sys.time()
 print(end_time - start_time)
 
-save(Growth7_E.GxRxPre, file=paste0("model/", Period, "7_E.GxRxPre.RData"))
-######
+save(Growth8_E.GxRxPre, file=paste0("model/", Period, "8_E.GxRxPre.RData"))
+#######
 
 
 if(Period=="Senescence"){

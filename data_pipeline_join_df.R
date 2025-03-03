@@ -61,12 +61,10 @@ model_df$plot_grouped   <- ordered(as.factor(model_df$plot_grouped))
 model_df$date          <- as.Date(model_df$date)
 
 # measure variables
-model_df$avg_temperature_56 <- (PhenoWeatherData_cast$Measure_56_Temperature)
 model_df$avg_temperature_28 <- (PhenoWeatherData_cast$Measure_28_Temperature)
-model_df$avg_precipitation_56 <- (PhenoWeatherData_cast$Measure_56_Precipitation)
 model_df$avg_precipitation_28 <- (PhenoWeatherData_cast$Measure_28_Precipitation)
 model_df$avg_radiation_28 <- (PhenoWeatherData_cast$Measure_28_RadiationCap)
-model_df$avg_photothermal_28<- (PhenoWeatherData_cast$Measure_28_PhotoThermalCap)
+model_df$avg_photothermal_28<- (PhenoWeatherData_cast$Measure_28_PhotothermalProd)
 model_df$avg_vpd_28 <- (PhenoWeatherData_cast$Measure_28_VPD)
 model_df$avg_humidity_28 <- (PhenoWeatherData_cast$Measure_28_Humidity)
 
@@ -74,7 +72,8 @@ model_df$avg_temperature_14 <- (PhenoWeatherData_cast$Measure_14_Temperature)
 model_df$avg_precipitation_14 <- (PhenoWeatherData_cast$Measure_14_PrecipitationCap)
 model_df$avg_precipitation_28 <- (PhenoWeatherData_cast$Measure_28_PrecipitationCap)
 model_df$avg_radiation_14 <- (PhenoWeatherData_cast$Measure_14_Radiation)
-model_df$avg_photothermal_14<- (PhenoWeatherData_cast$Measure_14_PhotoThermal)
+model_df$avg_photothermal_14<- (PhenoWeatherData_cast$Measure_14_PhotothermalProd)
+model_df$avg_photothermalunit_14<- (PhenoWeatherData_cast$Measure_14_PhotothermalUnit)
 model_df$avg_humidity_14 <- (PhenoWeatherData_cast$Measure_14_Humidity)
 model_df$avg_vpd_14 <- (PhenoWeatherData_cast$Measure_14_VPD)
 

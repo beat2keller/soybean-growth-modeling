@@ -592,6 +592,16 @@ p #have different genotype_name
 unique(Data_rows$plot.UID[!Data_rows$plot.UID%in%design_all$plot.UID]) ## SB008 is omitted due to small repetition in other fields and bad yield quality data
 
 Data_rows_exp <- merge(Data_rows, design_all[!is.na(design_all$genotype.id)&!duplicated(design_all$plot.UID),], by = c("plot.UID"))
+
+nrow(unique(Data_rows_exp[,c("plot.UID")]))
+# nrow(unique(Data_rows_exp[,c("genotype.id")]))
+
+nrow(unique(Data_rows_exp[,c("Date","plot.UID","Time")]))
+
+p <- Data_rows_exp[,nrow(unique(.SD[,c("Date","plot.UID","Time")])), by=Year]
+min(p$V1)
+max(p$V1)
+
 # Data_rows_exp$genotype.id <- Data_rows_exp$genotype_name
 Data_rows_exp[duplicated(paste(Date, plot.UID)),]
 Data_rows_exp$Sum_Pixel_plot <- as.numeric(Data_rows_exp$Sum_Pixel_plot)
@@ -1063,8 +1073,7 @@ oo <- subset(Data_rows_melt, Filename%in%p$Filename[1])
 Data_relative_all <- Data_relative_all[!duplicated(paste(Date, plot.UID,Filename,variable,Time)),] ## fix me
 
 ####
-setwd("~/public/Evaluation/Projects/KP0023_legumes/Scripts/stats-lab-crops/")
-soybeans_UAV <- fread("data/Phenotype_genotype_variables_20221123.csv")
+soybeans_UAV <- fread("~/public/Evaluation/Projects/KP0023_legumes/Scripts/stats-lab-crops/data/Phenotype_genotype_variables_20221123.csv")
 soybeans_UAV <- soybeans_UAV[, -1]
 soybeans_UAV$location = 'Eschikon'
 soybeans_UAV[stringr::str_starts(soybeans_UAV$UID, 'D'), 'location'] = 'Delley'
@@ -1353,17 +1362,18 @@ ggCC <- ggplot(data=p, aes(Date, value_relative, color=genotype.id)) +
   theme(strip.placement = "outside",
         axis.title.x = element_blank(),
         strip.background = element_blank(),
-        legend.key.size = unit(0.9, "lines"),
+        legend.key.size = unit(1.2, "lines"),
         legend.position="top",
         panel.border = element_rect(colour = "black", fill=NA, size=1),
         panel.grid.minor = element_blank(),
         panel.grid.major = element_blank(),
         axis.text.x = element_text(angle = 0, hjust = 0.5),
         text = element_text(size=9)) +
-  geom_point(size=1.5, alpha=0.5, aes(shape=Period)) +
-  geom_vline(size=0.5, alpha=1, aes(xintercept = Max_variable_date)) +
+  geom_point(size=0.5, alpha=0.5, aes(shape=Period)) +
+  guides(alpha = guide_legend(override.aes = list(alpha=1)),shape = guide_legend(override.aes = list(size=1.5)))+
+  geom_vline(size=0.25, alpha=0.5, linetype="dotted", aes(xintercept = Max_variable_date, color=genotype.id)) +
   scale_color_gradientn(name="Breeding lines", colors=c(tol4qualitative)) +  # Customize colors
-  geom_smooth(method="loess", formula = y ~ x, alpha=0.1, size=0.5, show.legend = F, aes(group=genotype.id)) +
+  geom_smooth(method="loess", formula = y ~ x, fill=NA, alpha=0.05, size=0.25, show.legend = F, aes(group=genotype.id)) +
   facet_wrap(location ~ paste(Year, year_site.UID), scale="free", switch="both")
 
 # ggCC
@@ -1653,6 +1663,7 @@ ggplot(data=p, aes(x=platform, y=h2, fill=platform) ) + ylab("Heritability")+ xl
 
 # ggsave("H2_soybean.pdf",  width = 95, height = 160, units = "mm")
 p <- setDT(soybean)[,list(Datapoints=nrow(.SD)),by=.(year_site.UID,Year,plot.row,plot.range,plot.UID,variable,Period,location)]
+nrow(soybean)
 subset(p,Datapoints>50)
 oo <- subset(soybean, plot.UID=="FPSB0140085")
 p$plot.range[p$Period=="Senescence"] <- p$plot.range[p$Period=="Senescence"]+0.4
