@@ -12,16 +12,10 @@ df_w_radiation$value[df_w_radiation$value>800] <- 800 # impose a cap on radiatio
 df_w_radiation$WeatherVariable <- "RadiationCap" # rename variable
 weather <- rbind(weather_load, df_w_radiation)
 
-df_w_temperature <- subset(weather,WeatherVariable=="Temperature")
-df_w_temperature$value <- df_w_temperature$value*df_w_radiation$value # make phototermal variable
-df_w_temperature$WeatherVariable <- "PhotoThermalCap"
-weather <- rbind(weather, df_w_temperature)
-
-
 df_w_precipitation <- subset(weather,WeatherVariable=="Precipitation")
 
 library(zoo)
-# Calculating rolling mean with a window length of 20
+# Calculating rolling mean with a window length of 12
 df_w_precipitation[, RollingMean := frollmean(value, n = 12)]
 # hist(df_w_precipitation$RollingMean)
 df_w_precipitation$prop_to_2 <- df_w_precipitation$RollingMean/2

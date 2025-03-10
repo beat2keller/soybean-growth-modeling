@@ -166,6 +166,7 @@ fm1Soy.lis <- nlsList( value ~ SSlogis(time_since_sowing, Asym, xmid, scal), dat
 nlmeControl(msMaxIter = 5000, msVerbose = TRUE)
 #update as nlme model with random effects
 cc_rf_scal <- nlme( fm1Soy.lis , random = Asym+ xmid ~ 1, weights = varPower())
+summary(cc_rf_scal)
 # vectors for starting values
 soyFix <- fixef(cc_rf_scal)
 

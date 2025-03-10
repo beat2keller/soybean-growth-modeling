@@ -22,8 +22,43 @@ WeatherAtSowing <- unique(Weather_data_sub)
 WeatherAtSowing$WeatherValueAtSowing <- WeatherAtSowing$WeatherValue
 
 
-load("model/Growth7_E.GxRxPre.RData")
-Growth7_E.GxRxPre
+load("model/Growth6_E.GxPxPre.RData")
+Growth6_E.GxPxPre
+
+coefs <- fixed.effects(Growth6_E.GxPxPre)
+coefs <- as.data.frame(coefs)
+coefs$Model <-  "Growth6_E.GxPxPre"
+
+coefs$term <- rownames(coefs)
+
+coefs$variable <- rownames(coefs)
+coefs$variable[grepl("Asym",coefs$term)] <- "Asym"
+coefs$variable[grepl("scal",coefs$term)] <- "scal"
+coefs$variable[grepl("mid",coefs$term)] <- "mid"
+coefs$variable[grepl(":avg_",coefs$term)] <- "Interaction"
+coefs$variable[grepl(":avg_rad",coefs$term)] <- "InteractionRad"
+coefs$variable[grepl(":avg_temp",coefs$term)] <- "InteractionTemp"
+coefs$variable[grepl(":avg_hum",coefs$term)] <- "InteractionHum"
+coefs$variable[grepl(":avg_prec",coefs$term)] <- "InteractionPrec"
+coefs$variable[grepl(":avg_phot",coefs$term)] <- "InteractionPhot"
+
+coefs <- setDT(coefs)[,c("ModelVar","genotype.id"):= tstrsplit(term, "genotype.id", fixed=TRUE)[1:2]]
+coefs <- setDT(coefs)[,c("genotype.id","Interaction_term"):= tstrsplit(genotype.id, ":avg_", fixed=TRUE)[1:2]]
+# coefs$coefs_abs <-  abs(coefs$coefs)
+# coefs <- as.data.frame(coefs)
+# coefs[order(coefs$variable,coefs$coefs_abs),]
+
+coefs_max <- coefs[,list(max=max(coefs),max_genotype=genotype.id[coefs==max(coefs)],min=min(coefs),min_genotype=genotype.id[coefs==min(coefs)]),by=.(variable,Model)]
+coefs_max <- coefs_max[grepl("Interaction",coefs_max$variable)]
+
+coefs_abs <- coefs
+coefs_abs$coefs <- abs(coefs_abs$coefs)
+coefs_max_abs <- coefs_abs[grepl("Interaction",coefs_abs$variable),list(max=max(coefs),max_genotype=genotype.id[coefs==max(coefs)],min=min(coefs),min_genotype=genotype.id[coefs==min(coefs)]),by=.(variable,Model)]
+
+selected_genotype <- c(coefs_max_abs$max_genotype,coefs_max_abs$min_genotype)
+selected_genotype_prec <- coefs_max_abs[grepl("InteractionPrec",coefs_max_abs$variable)]
+selected_genotype_prec <- c(selected_genotype_prec$max_genotype,selected_genotype_prec$min_genotype)
+
 
 library(data.table)
 
@@ -42,14 +77,14 @@ growing_dates <- rbindlist(growing_dates)
 
 
 ### identify exterm years from original weather data
-# weather_mean <- subset(weather, Date%in%growing_dates$Date&WeatherVariable%in%c("PhotothermalTime","PrecipitationCap"))
+# weather_mean <- subset(weather, Date%in%growing_dates$Date&WeatherVariable%in%c("PhotothermalProd","PrecipitationCap"))
 # weather_mean$Year <- format(as.Date(weather_mean$Date), "%Y")
 # 
 # weather_mean <- weather_mean[,mean(value),by=.(WeatherVariable,Year,Location)]
 # weather_mean[order(weather_mean$V1,weather_mean$WeatherVariable,decreasing = T),]
 
 
-weathter_data_sub <- subset(weathter_data, Date%in%growing_dates$Date&WeatherVariable%in%c("PhotothermalTime","PrecipitationCap","Temperature","Radiation"))
+weathter_data_sub <- subset(weathter_data, Date%in%growing_dates$Date&WeatherVariable%in%c("PhotothermalProd","PrecipitationCap","Temperature","Radiation"))
 
 weathter_data_sub <- weathter_data_sub[order(weathter_data_sub$WeatherVariable,weathter_data_sub$Date),]
 weathter_data_sub[, time_since_sowing:=1:nrow(.SD),by=.(WeatherVariable,Location,Year)]
@@ -61,29 +96,56 @@ weather_scenario_mean$Location <- "Across"
 weather_scenario_mean$Date <- NA
 weather_scenario_mean$Year <- "Average"
 
-weather_scenario_warmest <- subset(weathter_data_sub, Location=="Delley"&Year=="2015")
+scenario_warmest <- subset(weathter_data_sub, Location=="Delley"&Year=="2015")
+weather_scenario_warmest <- weather_scenario_mean
+weather_scenario_warmest$Measure_14[weather_scenario_warmest$WeatherVariable=="PhotothermalProd"] <- scenario_warmest$Measure_14[scenario_warmest$WeatherVariable=="PhotothermalProd"]
 weather_scenario_warmest$scenario <- "Warm"
 
-weather_scenario_hot <- weather_scenario_warmest
-weather_scenario_hot$Measure_14 <- 1.1*weather_scenario_hot$Measure_14 
-weather_scenario_hot$scenario <- "Hot (scenario)"
 
-weather_scenario_coldest <- subset(weathter_data_sub, Location=="Delley"&Year=="2021") # really?
+# scenario_hot <- weather_scenario_warmest
+# scenario_hot$Measure_14 <- 1.1*scenario_hot$Measure_14 
+# weather_scenario_hot <- weather_scenario_mean
+# weather_scenario_hot$Measure_14[weather_scenario_hot$WeatherVariable=="PhotothermalProd"] <- scenario_hot$Measure_14[scenario_hot$WeatherVariable=="PhotothermalProd"]
+# weather_scenario_hot$scenario <- "Hot (scenario)"
+
+scenario_coldest <- subset(weathter_data_sub, Location=="Delley"&Year=="2021") # Eschikon was colder, but Delley had less radiation
+weather_scenario_coldest <- weather_scenario_mean
+weather_scenario_coldest$Measure_14[weather_scenario_coldest$WeatherVariable=="PhotothermalProd"] <- scenario_coldest$Measure_14[scenario_coldest$WeatherVariable=="PhotothermalProd"]
 weather_scenario_coldest$scenario <- "Cold"
 
-weather_scenario_rainy <- subset(weathter_data_sub, Location=="Eschikon"&Year=="2016") # make senes
+scenario_coldest  <- subset(weathter_data_sub, Location=="Eschikon"&Year=="2016") # make senes
+weather_scenario_rainy <- weather_scenario_mean
+weather_scenario_rainy$Measure_14[weather_scenario_rainy$WeatherVariable=="PrecipitationCap"] <- scenario_coldest$Measure_14[scenario_coldest$WeatherVariable=="PrecipitationCap"]
+weather_scenario_rainy$Measure_28[weather_scenario_rainy$WeatherVariable=="PrecipitationCap"] <- scenario_coldest$Measure_28[scenario_coldest$WeatherVariable=="PrecipitationCap"]
 weather_scenario_rainy$scenario <- "Rainy"
 
-weather_scenario_dry <- subset(weathter_data_sub, Location=="Delley"&Year=="2022") # make senes
+scenario_dry <- subset(weathter_data_sub, Location=="Delley"&Year=="2022") # make senes
+weather_scenario_dry <- weather_scenario_mean
+weather_scenario_dry$Measure_14[weather_scenario_dry$WeatherVariable=="PrecipitationCap"] <- scenario_dry$Measure_14[scenario_dry$WeatherVariable=="PrecipitationCap"]
+weather_scenario_dry$Measure_28[weather_scenario_dry$WeatherVariable=="PrecipitationCap"] <- scenario_dry$Measure_28[scenario_dry$WeatherVariable=="PrecipitationCap"]
 weather_scenario_dry$scenario <- "Dry"
 
 
-weathter_data_scenarios <- rbind(weather_scenario_mean,weather_scenario_warmest, weather_scenario_coldest, weather_scenario_rainy, weather_scenario_dry, weather_scenario_hot)
+weathter_data_scenarios <- rbind(weather_scenario_mean,weather_scenario_warmest, weather_scenario_coldest, weather_scenario_rainy, weather_scenario_dry)
 # new_soybean <- merge(new_soybean, mean_vals, by = "genotype.id", all.x = TRUE)
 
 
-new_soybean <- growing_dates
-new_soybean$genotype.id <- 10056
+
+# selected_genotype <- selected_genotype[c(1,3)]
+
+growing_dates_sub = growing_dates[seq(1, nrow(growing_dates), 3), ]
+
+select_geno <- c(selected_genotype,candidate_genotypes)
+select_geno <- select_geno[!duplicated(select_geno)]
+
+
+new_soybean <- NULL
+for (genotype in select_geno) {
+    soybean_sub <- growing_dates_sub
+  soybean_sub$genotype.id <- genotype
+new_soybean <- rbind(new_soybean,soybean_sub)
+}
+
 new_soybean$platform <- "FIP"
 new_soybean <- new_soybean[grepl("2015",new_soybean$Date),]
 new_soybean$Date <- NULL
@@ -116,7 +178,7 @@ model_df$avg_temperature_14 <- (WeatherDataToPreodict_cast$Measure_14_Temperatur
 model_df$avg_precipitation_14 <- (WeatherDataToPreodict_cast$Measure_14_PrecipitationCap)
 model_df$avg_precipitation_28 <- (WeatherDataToPreodict_cast$Measure_28_PrecipitationCap)
 model_df$avg_radiation_14 <- (WeatherDataToPreodict_cast$Measure_14_Radiation)
-model_df$avg_photothermal_14<- (WeatherDataToPreodict_cast$Measure_14_PhotoThermal)
+model_df$avg_photothermal_14<- (WeatherDataToPreodict_cast$Measure_14_PhotothermalProd)
 model_df$avg_humidity_14 <- (WeatherDataToPreodict_cast$Measure_14_Humidity)
 model_df$avg_vpd_14 <- (WeatherDataToPreodict_cast$Measure_14_VPD)
 
@@ -124,24 +186,194 @@ model_df$avg_vpd_14 <- (WeatherDataToPreodict_cast$Measure_14_VPD)
 
 model_df
 
-# --- Step 4. Run predictions using the loaded model ---
-# (Assuming your nonlinear mixed-effects model Growth7_E.GxRxPre is already loaded)
-model_df$fit <-  predict(Growth7_E.GxRxPre, newdata = model_df, level = 0)
-# --- View the first few rows of the new prediction dataset ---
-head(model_df)
-model_df$Fit <- sin(model_df$fit)^2 
-p <- model_df
+# Load necessary packages
+require(ggplot2)
+require(data.table)
+require(nlme)
 
+# --- Step 4. Run predictions using the loaded model ---
+model_df$fit <- predict(Growth6_E.GxPxPre, newdata = model_df, level = 0)
+
+# Bootstrapping to estimate confidence intervals
+set.seed(123)  # For reproducibility
+n_boot <- 1000  # Number of bootstrap samples
+n_rows <- nrow(model_df)  # Number of observations
+boot_preds <- matrix(NA, nrow = n_rows, ncol = n_boot)
+
+# Extract residuals (Ensure they match dataset length)
+residuals_fit <- residuals(Growth6_E.GxPxPre, level = 0)  # Fixed effects residuals
+if (length(residuals_fit) != n_rows) {
+  residuals_fit <- residuals_fit[1:n_rows]  # Trim if too long (ensure same length)
+}
+
+# Bootstrapping loop
+for (i in 1:n_boot) {
+  # Resample residuals of correct length
+  resampled_resid <- sample(residuals_fit, size = n_rows, replace = TRUE)  
+  boot_preds[, i] <- model_df$fit + resampled_resid  # Add resampled residuals
+}
+
+# Compute standard error from bootstrapped predictions
+se.fit <- apply(boot_preds, 1, sd)
+
+# Compute confidence intervals
+model_df$CI_upper <- sin(model_df$fit + 1.96 * se.fit)^2  # Upper 95% CI
+model_df$CI_lower <- sin(model_df$fit - 1.96 * se.fit)^2  # Lower 95% CI
+
+# Compute transformed fit
+model_df$Fit <- sin(model_df$fit)^2 
+model_df <- setDT(model_df)
+
+# Subset based on selected genotypes
+p <- model_df
+p <- subset(p, genotype.id %in% as.integer(selected_genotype))
+p$Scenario <- "Photothermal product"
+p$Scenario[p$genotype.id %in% selected_genotype_prec] <- "Precipitation"
+
+
+p1 <- subset(model_df, genotype.id %in% as.integer(candidate_genotypes))
+p1$Scenario <- "Photothermal product"
+p2 <- subset(model_df, genotype.id %in% as.integer(candidate_genotypes))
+p2$Scenario <- "Precipitation"
+
+p <- rbind(p,p1,p2)
+
+p <- subset(p, !(Scenario == "Photothermal product" & scenario %in% c("Rainy", "Dry")))
+p <- subset(p, !(Scenario == "Precipitation" & scenario %in% c("Cold", "Warm", "Hot (scenario)")))
+
+# Define color palette
+tol6qualitative = c("#332288", "#88CCEE", "#117733", "#DDCC77", "#CC6677", "#AA4499")
+
+# Create the plot with confidence intervals
+ggFit <- ggplot(data = p, aes(time_since_sowing, Fit, color = genotype.id, shape = scenario)) +
+  ylab("Canopy cover (%)") +
+  theme_bw() +
+  theme(
+    strip.placement = "outside",
+    axis.title.x = element_blank(),
+    strip.background = element_blank(),
+    legend.key.size = unit(0.9, "lines"),
+    legend.position = "top",
+    panel.border = element_rect(colour = "black", fill = NA, linewidth = 1),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    axis.text.x = element_text(angle = 0, hjust = 0.5),
+    text = element_text(size = 9)
+  ) +
+  # geom_ribbon(aes(ymin = CI_lower, ymax = CI_upper, fill = genotype.id), alpha = 0.2, color = NA) +  # Add CI
+  geom_point(size = 2, alpha = 1) +
+  scale_color_manual(values = tol6qualitative) +
+  geom_line(size = 0.5, alpha = 0.5) +
+  ylim(c(0,1)) +
+  facet_grid(. ~ Scenario, scale = "free", switch = "both")
+
+ggFit
+
+
+
+p <- melt.data.table(model_df, measure.vars = c( "avg_precipitation_28", "avg_photothermal_14"),variable.name = "Weather")
+p$value <- p$value/14
+p$value[p$Weather=="avg_precipitation_28"] <- p$value[p$Weather=="avg_precipitation_28"]/2
+
+p$Scenario <- "Photothermal product"
+p$Scenario[grepl("precip",p$Weather)] <- "Precipitation"
+p <- subset(p, !(Scenario=="Photothermal product"& scenario%in%c("Rainy","Dry")))
+p <- subset(p, !(Scenario=="Precipitation"& scenario%in%c("Cold","Warm","Hot (scenario)")))
+
+
+ggWeather <- ggplot(data=p,aes(time_since_sowing, value,  shape=scenario))+ ylab("Weather conditions")+
+  theme_bw()+theme(strip.placement = "outside",axis.title.x = element_blank(), strip.background = element_blank(),legend.key.size = unit(0.9, "lines"), legend.position="none",panel.border = element_rect(colour = "black", fill=NA, linewidth=1), panel.grid.minor = element_blank(),panel.grid.major = element_blank(),axis.text.x = element_text(angle = 0, hjust = 0.5),text = element_text(size=9))+
+  geom_point(size=2, alpha=1)+
+  scale_color_manual(values = tol6qualitative)+
+  # geom_smooth(aes(Date, Fit,group=genotype.id),size=0.1)+
+  # ylim(c(0,1))+
+  facet_wrap(.~Scenario,scale="free",switch="both")
+ggWeather
+
+require(cowplot)
+
+first_row <- plot_grid(ggFit, ggWeather,  ncol = 1, rel_heights = c(1,0.5), labels = c("A","B"))  #,vjust=0.5+
+first_row
+
+# ggsave("Predictions_scenarios_soybean.pdf", width = 180, height = 200, units = "mm", dpi = 100, first_row)
+
+
+
+
+p <- model_df
+p <- subset(p, genotype.id%in%as.integer(candidate_genotypes))
 
 tol6qualitative=c("#332288", "#88CCEE", "#117733", "#DDCC77", "#CC6677","#AA4499")
 
 require(ggplot2)
 
-ggFit <- ggplot(data=p,aes(time_since_sowing, Fit, color=scenario, shape=scenario))+ ylab("Canopy cover (%)")+
+ggFit <- ggplot(data=p,aes(time_since_sowing, Fit, color=genotype.id, shape=scenario))+ ylab("Canopy cover (%)")+
   theme_bw()+theme(strip.placement = "outside",axis.title.x = element_blank(), strip.background = element_blank(),legend.key.size = unit(0.9, "lines"), legend.position="top",panel.border = element_rect(colour = "black", fill=NA, linewidth=1), panel.grid.minor = element_blank(),panel.grid.major = element_blank(),axis.text.x = element_text(angle = 0, hjust = 0.5),text = element_text(size=9))+
   geom_point(size=2, alpha=1)+
   scale_color_manual(values = tol6qualitative)+
-  # geom_smooth(aes(Date, Fit,group=genotype.id),size=0.1)+
-  facet_grid(.~genotype.id,scale="free",switch="both", labeller = label_parsed)
+  geom_line(size=0.5, alpha=0.5)+
+  # scale_shape_manual(values =c(19,8))+
+  # geom_smooth(size=0.1,fill=NA)+
+  ylim(c(0,1))
+  # facet_grid(.~Scenario,scale="free",switch="both")
 ggFit
 
+
+############
+tol3qualitative <- c("#4477AA", "#DDCC77", "#CC6677")
+tol12qualitative=c("#332288", "#6699CC", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#661100", "#CC6677", "#AA4466", "#882255", "#AA4499")
+
+
+
+load("model/Growth6_E.GxPxPre.RData")
+overview_all_df = intervals(Growth6_E.GxPxPre)$fixed
+
+
+######
+######
+
+library(ggplot2)
+library(data.table)
+
+library(ggplot2)
+library(data.table)
+
+# Process new variables
+Rownames <- rownames(overview_all_df)
+overview_all_df <- setDT(as.data.frame(overview_all_df))
+overview_all_df$rownames <- Rownames
+overview_all_df[, c("Variable", "Interaction") := tstrsplit(rownames, ":", fill = NA)]
+
+# Extract key parts from Variable
+overview_all_df[, c("Scale", "gen","genotype") := tstrsplit(Variable, "\\.", fill = NA)]
+
+overview_all_df$Scale[grep("Intercept",overview_all_df$Variable)] <- "Intercept"
+# For Interaction terms, replace NA with "None"
+overview_all_df[is.na(Interaction), Interaction := "None"]
+
+
+overview_all_df$genotype.id <- gsub("id","",overview_all_df$genotype)
+overview_all_df$Selection <- "Remaining population"
+overview_all_df <- merge(overview_all_df, add_gen_id, by="genotype.id")
+overview_all_df$Selection[overview_all_df$genotype.id%in%select_geno] <- overview_all_df$Genotype[overview_all_df$genotype.id%in%select_geno]
+overview_all_df$variable <- overview_all_df$Scale
+overview_all_df$variable[overview_all_df$Scale=="Asym"] <- "Asym"
+overview_all_df$variable[overview_all_df$Interaction=="avg_photothermal_14"] <- "G:P"
+overview_all_df$variable[overview_all_df$Interaction=="avg_precipitation_14"] <- "G:Pre"
+
+p <- subset(overview_all_df,Scale!="Intercept")
+
+p[,mean_est:=mean(est.),by=variable]
+# 
+ggIdeal_coef <- ggplot(p, aes(x = Genotype, y = est., color = Selection)) +xlab("Breeding line")+ylab("Coefficient")+
+  geom_point(size =0.5 ) +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2, position = position_dodge(width = 0.5), color="grey") +  # Add error bars
+  geom_point(data=subset(p, genotype.id%in%select_geno),size =1.5 )+ 
+  geom_errorbar(data=subset(p, genotype.id%in%select_geno),aes(ymin = lower, ymax = upper), width = 0.2, position = position_dodge(width = 0.5), color="black") +  # Add error bars
+  theme_bw()+theme(plot.title=element_text(hjust=-0.2),strip.placement = "outside", panel.spacing.x = unit(-0.2, "lines"), strip.background = element_blank(),legend.title = element_blank(),legend.key.height=unit(0.5,"line"),legend.key.size = unit(1, "lines"), legend.position="none",panel.border = element_rect(colour = "black", fill=NA, size=1), panel.grid.minor = element_blank(),panel.grid.major = element_blank(),axis.text.x = element_blank(),text = element_text(size=8),axis.title.y = element_blank())+
+  scale_color_manual(values =c(tol6qualitative,"grey"))+
+  geom_hline(aes(yintercept=mean_est),linetype="dashed")+
+  facet_grid(variable~.,scales = "free",switch="both")
+
+ggIdeal_coef
+####

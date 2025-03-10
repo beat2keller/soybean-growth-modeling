@@ -108,23 +108,27 @@ colnames(genotype_selection) = c('genotype', 'prec_int','prec','rad_int','rad_in
 i =1
 for (i in 1:length(unique(df$genotype.id))) {
   genotype_selection[i, 1] = i
-  genotype_selection[i, 2] = ifelse(prec_intervals[i] < quantile(prec_intervals)[2], 1,0)
-  genotype_selection[i, 3] = ifelse(rad_intervals[i] < quantile(rad_intervals)[2], 1,0)
-  genotype_selection[i, 4] = ifelse(rad_intervals[i] < quantile(rad_intervals)[3], 1,0) #  increase the weight of rad_interval
+  genotype_selection[i, 2] = ifelse(prec_intervals[i] < quantile(prec_intervals,0.75), 1,0)
+  genotype_selection[i, 3] = ifelse(rad_intervals[i] < quantile(rad_intervals,0.75), 1,0)
+  genotype_selection[i, 4] = ifelse(rad_intervals[i] < quantile(rad_intervals,0.75), 1,1) #  increase the weight of rad_interval
   median(prec_main_effect+precs)
   precs_abs <- abs(prec_main_effect+precs)
-  genotype_selection[i, 5] = ifelse(precs_abs[i] < quantile(precs_abs)[3], 1, 0)  # offset quantile(precs)[3]50%  0.4803419 
-  # rad_abs <- abs(rad_main_effect+rad)
-  genotype_selection[i, 6] = ifelse(rad[i] < quantile(rad)[1], 1, 0) # 
-  genotype_selection[i, 7] = ifelse(rad[i] < quantile(rad)[2], 1, 0) #  increase the weight of rad
-  genotype_selection[i, 8] = ifelse(asym[i] >  quantile(asym)[3], 1, 0)
-  genotype_selection[i, 9] = ifelse(asym_intervals[i] < quantile(asym_intervals)[2], 1, 0)
+  genotype_selection[i, 5] = ifelse(precs_abs[i] < quantile(precs_abs,0.025), 1, 0)  # offset quantile(precs)[3]50%  0.4803419 
+  rad_abs <- abs(rad_main_effect+rad)
+  genotype_selection[i, 6] = ifelse(rad_abs[i] < quantile(rad_abs,0.025), 1, 0) # 
+  genotype_selection[i, 7] = ifelse(rad_abs[i] < quantile(rad_abs,0.15), 1, 1) #  increase the weight of rad
+  genotype_selection[i, 8] = ifelse(rad_abs[i] < quantile(rad_abs,0.25), 1, 1) #  increase the weight of rad
+    # genotype_selection[i, 8] = ifelse(asym[i] >  quantile(asym)[3], 1, 1)
+  genotype_selection[i, 9] = ifelse(asym_intervals[i] < quantile(asym_intervals,0.25), 1, 1)
+  genotype_selection[i, 10] = ifelse(asym_intervals[i] < quantile(asym_intervals,0.05), 1, 1)  #  increase the asym_intervals
+  
   i = i+1
 }
 
 
-genotype_selection$sum = rowSums(genotype_selection[, c(2:9)]) 
-candidates = genotype_selection$genotype[genotype_selection$sum > 6] # get the genotypes fulfilling more than ... criteria
+genotype_selection$sum = rowSums(genotype_selection[, c(2:10)]) 
+max(genotype_selection$sum,na.rm = T)
+candidates = genotype_selection$genotype[genotype_selection$sum > (max(genotype_selection$sum,na.rm = T)-1)] # get the genotypes fulfilling more than ... criteria
 candidates <- candidates[!is.na(candidates)]
 candidates
 # Since the sum-to-zero constraint removes the genotype-id identification, we need
@@ -151,7 +155,7 @@ df$genotype.id <- relevel(df$genotype.id, ref= as.character(unique(df$genotype.i
 # 
 # save(Growth6_E.GxPxPre, file=paste0("model/", Period, "6_E.GxPxPre.RData"))
 
-# this runs for up to 2 hours, you can also load it in here:
+# this runs for up to 20 mins, you can also load it in here:
 load("model/Growth6_E.GxPxPre.RData")
 
 ci_baseline <- data.frame(lower= intervals(Growth6_E.GxPxPre)$fixed[,1], est = intervals(Growth6_E.GxPxPre)$fixed[,2], upper = intervals(Growth6_E.GxPxPre)$fixed[,3])
@@ -159,6 +163,7 @@ ci_baseline$names <- rownames(ci_baseline)
 
 # calculating the genotype-specific asymptote
 ci_baseline$Asym_est = NA
+length(ci_baseline$names[grepl("Asym.genotype.",ci_baseline$names)])
 for (i in 2:length(unique(df$genotype.id))) {
   ci_baseline$Asym_est[i] = ci_baseline$est[i] + ci_baseline$est[1]
 }
@@ -166,9 +171,12 @@ for (i in 2:length(unique(df$genotype.id))) {
 # matching the genotype from the two models
 candidate_genotypes = c()
 for (i in 1:length(na.omit(candidates))) {
-  asym_cand = asym[candidates[i]] + ci[1,2] + ci[grep("platform",rownames(ci)),2]
-  par_cand <- na.omit(ci_baseline$names[round(ci_baseline$Asym_est,5) == round(asym_cand[[1]],5)])[[1]]
+  asym_cand = asym[candidates[i]] + ci$est[1] + ci$est[grep("Asym.platform",rownames(ci))] ## candidate effect + intercept + platfrom
+  par_cand <- (ci_baseline$names[round(ci_baseline$Asym_est,5)  == round(asym_cand,5)])
+  par_cand <- par_cand[grepl("Asym",par_cand)]
   candidate <- gsub("\\D", "", par_cand)
+  if(length(candidate)==0){candidate <- "10001"} # fix me
+  print(candidate)
   candidate_genotypes = c(candidate_genotypes, candidate)
 }
 candidate_genotypes
@@ -200,7 +208,7 @@ colnames(overview_df) = c("Genotype",	"Scale_low",	"Scale_est",	"Scale_up",	"Sca
 
 # again, you can skip this by loading in directly the models from the repo (see below)
 i = 1
-for (id in candidate_genotypes) {
+for (id in candidate_genotypes[1]) {
   
   df$genotype.id <- relevel(df$genotype.id,ref= id)
   levels(df$genotype.id)[1]
@@ -214,7 +222,7 @@ for (id in candidate_genotypes) {
                               start = dynamic_vector, control = list (msVerbose = TRUE,
                                                                       maxIter = 200,
                                                                       msMaxIter = 200))
-  
+
   end_time <- Sys.time()
   print(end_time-start_time)
   save(model_candidates, file = paste("model/candidates/", id, "_model.RData", sep=""))
@@ -254,6 +262,8 @@ save(overview_df, file="model/overview_df.RData")
 
 ############
 tol3qualitative <- c("#4477AA", "#DDCC77", "#CC6677")
+tol12qualitative=c("#332288", "#6699CC", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#661100", "#CC6677", "#AA4466", "#882255", "#AA4499")
+
 
 # this overview dataframe contains all the information of interest
 # it is summarized in the report pdf
