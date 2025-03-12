@@ -110,23 +110,22 @@ for (i in 1:length(unique(df$genotype.id))) {
   genotype_selection[i, 1] = i
   genotype_selection[i, 2] = ifelse(prec_intervals[i] < quantile(prec_intervals,0.75), 1,0)
   genotype_selection[i, 3] = ifelse(rad_intervals[i] < quantile(rad_intervals,0.75), 1,0)
-  genotype_selection[i, 4] = ifelse(rad_intervals[i] < quantile(rad_intervals,0.75), 1,1) #  increase the weight of rad_interval
+  # genotype_selection[i, 4] = ifelse(rad_intervals[i] < quantile(rad_intervals,0.75), 1,1) #  removed
   median(prec_main_effect+precs)
   precs_abs <- abs(prec_main_effect+precs)
-  genotype_selection[i, 5] = ifelse(precs_abs[i] < quantile(precs_abs,0.025), 1, 0)  # offset quantile(precs)[3]50%  0.4803419 
+  genotype_selection[i, 4] = ifelse(precs_abs[i] < quantile(precs_abs,0.025), 1, 0)  # offset quantile(precs)[3]50%  0.4803419 
   rad_abs <- abs(rad_main_effect+rad)
-  genotype_selection[i, 6] = ifelse(rad_abs[i] < quantile(rad_abs,0.025), 1, 0) # 
-  genotype_selection[i, 7] = ifelse(rad_abs[i] < quantile(rad_abs,0.15), 1, 1) #  increase the weight of rad
-  genotype_selection[i, 8] = ifelse(rad_abs[i] < quantile(rad_abs,0.25), 1, 1) #  increase the weight of rad
-    # genotype_selection[i, 8] = ifelse(asym[i] >  quantile(asym)[3], 1, 1)
-  genotype_selection[i, 9] = ifelse(asym_intervals[i] < quantile(asym_intervals,0.25), 1, 1)
-  genotype_selection[i, 10] = ifelse(asym_intervals[i] < quantile(asym_intervals,0.05), 1, 1)  #  increase the asym_intervals
+  genotype_selection[i, 5] = ifelse(rad_abs[i] < quantile(rad_abs,0.025), 1, 0) # 
+  # genotype_selection[i, 7] = ifelse(rad_abs[i] < quantile(rad_abs,0.15), 1, 1) #  removed
+  # genotype_selection[i, 8] = ifelse(rad_abs[i] < quantile(rad_abs,0.25), 1, 1) #  removed
+  # genotype_selection[i, 9] = ifelse(asym_intervals[i] < quantile(asym_intervals,0.25), 1, 1) #  removed
+  # genotype_selection[i, 10] = ifelse(asym_intervals[i] < quantile(asym_intervals,0.05), 1, 1)  #  removed
   
   i = i+1
 }
 
 
-genotype_selection$sum = rowSums(genotype_selection[, c(2:10)]) 
+genotype_selection$sum = rowSums(genotype_selection[, c(2:5)]) 
 max(genotype_selection$sum,na.rm = T)
 candidates = genotype_selection$genotype[genotype_selection$sum > (max(genotype_selection$sum,na.rm = T)-1)] # get the genotypes fulfilling more than ... criteria
 candidates <- candidates[!is.na(candidates)]
