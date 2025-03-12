@@ -1047,17 +1047,122 @@ unique(Data_relative$Year)
 Data_relative <- unique(Data_relative)
 Data_relative <- Data_relative[!duplicated(paste(Date, plot.UID,Filename,variable,value,Time,value_relative)),]
 
+######
+p <- subset(Data_relative, variable %in% c("Canopy_cover"))
 
-ggplot(data=Data_relative, aes(Date, value_relative))+ ylab("Canopy cover (%)")+
-  theme_bw()+theme(strip.placement = "outside",axis.title.x = element_blank(), strip.background = element_blank(),legend.key.size = unit(0.9, "lines"), legend.position="right",panel.border = element_rect(colour = "black", fill=NA, size=1), panel.grid.minor = element_blank(),panel.grid.major = element_blank(),axis.text.x = element_text(angle = 0, hjust = 0.5),text = element_text(size=9))+
-  # geom_errorbar(aes(ymin=value-SD, ymax=value+SD),color="grey",width=0.001)  +
-  geom_point(size=1.5, alpha=1,aes(color=genotype.id))+
-  # geom_line(aes(y=Loess_fit, x=Date))+
-  geom_smooth(method="loess",formula = y ~x,  alpha=0.25, show.legend = F, aes(group=1))+
-  # guides(color = guide_legend(nrow=3))+
-  facet_grid(.~Year+year_site.UID,scale="free",switch="both", labeller = label_parsed)
 
-###
+genotype_order <- p[,list(mean_value = mean(value_relative, na.rm = TRUE)),by=genotype.id]
+genotype_order <- genotype_order[order(genotype_order$mean_value,decreasing =T),]
+# Convert genotype.id to a factor with the desired order
+p$genotype.id <- factor(p$genotype.id, levels = genotype_order$genotype.id)
+
+# Ensure Year and year_site.UID are also ordered factors
+p$Year <- factor(p$Year, levels = sort(unique(p$Year)))
+p$year_site.UID <- factor(p$year_site.UID, levels = sort(unique(p$year_site.UID)))
+
+p$genotype.id <- as.numeric(as.character(p$genotype.id))  # Ensure genotype.id is numeric
+
+ggCC_FIP <- ggplot(data=p, aes(Date, value_relative, color=genotype.id)) +
+  ylab("Canopy cover (%)") +
+  theme_bw() +
+  theme(strip.placement = "outside",
+        axis.title.x = element_blank(),
+        strip.background = element_blank(),
+        legend.key.size = unit(1.2, "lines"),
+        legend.position="top",
+        panel.border = element_rect(colour = "black", fill=NA, size=1),
+        panel.grid.minor = element_blank(),
+        panel.grid.major = element_blank(),
+        axis.text.x = element_text(angle = 0, hjust = 0.5),
+        text = element_text(size=9)) +
+  geom_point(size=0.5, alpha=0.5 )+
+  guides(alpha = guide_legend(override.aes = list(alpha=1)),shape = guide_legend(override.aes = list(size=1.5)))+
+  scale_color_gradientn(name="Breeding lines", colors=c(tol4qualitative)) +  # Customize colors
+  geom_smooth(method="loess", formula = y ~ x, fill=NA, alpha=0.05, size=0.25, show.legend = F, aes(group=genotype.id)) +
+  facet_wrap(. ~ paste(Year, year_site.UID), scale="free", switch="both")
+
+ggCC_FIP
+
+
+unique_lines <- unique(Data_relative[,c("genotype.id","year_site.UID","Year")])
+# unique_lines$year_loc <- paste(unique_lines$Year, unique_lines$location)
+unique_lines[,nrow(.SD),by=Year]
+unique_lines$Year_grouped <- unique_lines$Year
+
+unique_lines$Year_grouped[unique_lines$Year=="2015"] <- "2015-16"
+unique_lines$Year_grouped[unique_lines$Year=="2016"] <- "2015-16"
+
+
+unique_lines$Year_grouped[unique_lines$Year=="2017"] <- "2017-20"
+unique_lines$Year_grouped[unique_lines$Year=="2018"] <- "2017-20"
+
+unique_lines$Year_grouped[unique_lines$Year=="2019"] <- "2017-20"
+unique_lines$Year_grouped[unique_lines$Year=="2020"] <- "2017-20"
+
+unique_lines$Year_grouped[unique_lines$Year=="2022"] <- "2021-22"
+unique_lines$Year_grouped[unique_lines$Year=="2021"] <- "2021-22"
+
+unique_lines$Year_grouped <- paste(unique_lines$Year_grouped,unique_lines$location)
+unique(unique_lines$Year_grouped)
+
+library(ggVennDiagram)
+
+
+# Convert data.table into a list of sets for Venn diagram
+venn_data <- unique_lines[, .(genotype_list = list(unique(genotype.id))), by = Year_grouped]
+venn_list <- setNames(venn_data$genotype_list, venn_data$Year_grouped)
+
+# Plot the Venn diagram
+ggVenn <- ggVennDiagram(
+  venn_list, 
+  label_alpha = 0, set_size = 2,
+  label_size = 2  # Decrease label text inside the Venn diagram
+) +  
+  theme_bw() +
+  theme(
+    strip.placement = "outside",
+    axis.title = element_blank(),
+    axis.text = element_blank(),
+    strip.background = element_blank(),
+    legend.key.size = unit(0.9, "lines"),
+    legend.position = "none",
+    panel.border = element_rect(colour = "black", fill = NA, size = 1),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    text = element_text(size = 8),  # Adjust global text size
+    plot.title = element_text(size = 10, face = "bold", hjust = 0.5),  # Adjust title size & centering
+    legend.text = element_text(size = 6),  
+    legend.title = element_text(size = 6),  
+    strip.text = element_text(size = 6),
+    plot.margin = margin(t = 10, r = 5, b = 5, l = 5)  # Increase top margin for title visibility
+  ) +
+  scale_fill_gradient(low = "white", high = tol5qualitative[1]) 
+  # ggtitle("B")  # Add title "B"
+
+# Display the updated ggVenn
+print(ggVenn)
+
+library(ggplot2)
+library(ggVennDiagram)
+library(patchwork)
+
+
+# Overlay the Venn diagram inside the empty facet
+final_plot <- ggCC_FIP + 
+  inset_element(ggVenn, 
+                left = 0.75, bottom = 0,  
+                right = 1, top = 0.3) +  # Adjust as needed
+  plot_annotation(tag_levels = "A")  # Automatically adds "A" to ggCC_FIP
+
+# Display the final plot
+print(final_plot)
+
+
+
+# ggsave("Datapoints_CC_FIP_soybean.pdf",  width = 170, height = 180, units = "mm", final_plot)
+
+# 
+# ###
 Data_relative_all <- Data_relative
 Data_relative_all$value <- Data_relative_all$value_relative
 # p <- subset(Data_rows_melt_RowNr, !variable%in%c("Canopy_cover","Sum_Pixel_plot"))

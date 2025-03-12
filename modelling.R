@@ -1,7 +1,7 @@
 # setwd("~/public/Evaluation/Projects/KP0023_legumes/Scripts/canopy-cover-stats-lab/")
 
 Period <- "Growth"
-Period <- "Senescence"
+# Period <- "Senescence"
 
 # this code fits the model
 
@@ -178,7 +178,40 @@ require(nlme)
 
 df$platform <- as.factor(df$platform)
 
+
+
+### final model
+
 ###
+###
+no_genotypes = length(levels(df$genotype.id))
+dynamic_Asym = c(soyFix[1], rep(0,1*no_genotypes))
+dynamic_xmid = c(soyFix[2], rep(0,3))
+dynamic_scal = c(soyFix[3], rep(0,2*no_genotypes+1))
+
+dynamic_vector <- append(dynamic_Asym, c(dynamic_xmid, dynamic_scal))
+
+##
+start_time <- Sys.time()
+
+Growth_E.GxPTxP <- update(cc_rf_scal,
+                           fixed = list(Asym ~ genotype.id+platform,
+                                        xmid ~ avg_temperature_14 + avg_precipitation_14 + avg_radiation_14,
+                                        scal ~ genotype.id:(avg_photothermal_14+avg_precipitation_14)+platform),
+                           start = dynamic_vector, control = list (msVerbose = TRUE,
+                                                                   maxIter = 100,
+                                                                   msMaxIter = 100))
+end_time <- Sys.time()
+print(end_time - start_time)
+
+save(Growth_E.GxPTxP, file=paste0("model/", Period, "_E.GxPTxP.RData"))
+
+
+#########################
+
+### modelling comparison
+
+####
 
 no_genotypes = length(levels(df$genotype.id))
 dynamic_Asym = c(soyFix[1], rep(0,1*no_genotypes))
@@ -191,7 +224,7 @@ dynamic_vector <- append(dynamic_Asym, c(dynamic_xmid, dynamic_scal))
 ##
 start_time <- Sys.time()
 
-Growth0_G <- update(cc_rf_scal,
+Growth1_G <- update(cc_rf_scal,
                     fixed = list(Asym ~ genotype.id+platform,
                                  xmid ~ 1 ,
                                  scal ~ genotype.id+platform),
@@ -201,31 +234,31 @@ Growth0_G <- update(cc_rf_scal,
 end_time <- Sys.time()
 print(end_time - start_time)
 
-save(Growth0_G, file=paste0("model/", Period, "0_G.RData"))
+save(Growth1_G, file=paste0("model/", Period, "1_G.RData"))
 # ###
 
 ####
-no_genotypes = length(levels(df$genotype.id))
-dynamic_Asym = c(soyFix[1], rep(0,1*no_genotypes))
-dynamic_xmid = c(soyFix[2], rep(0,3))
-dynamic_scal = c(soyFix[3], rep(0,1*no_genotypes))
-
-dynamic_vector <- append(dynamic_Asym, c(dynamic_xmid, dynamic_scal))
-
-##
-start_time <- Sys.time()
-
-Growth1_E.G <- update(cc_rf_scal,
-                      fixed = list(Asym ~ genotype.id+platform,
-                                   xmid ~ avg_temperature_14 + avg_precipitation_14 + avg_radiation_14,
-                                   scal ~ genotype.id+platform),
-                      start = dynamic_vector, control = list (msVerbose = TRUE,
-                                                              maxIter = 100,
-                                                              msMaxIter = 100))
-end_time <- Sys.time()
-print(end_time - start_time)
-
-save(Growth1_E.G, file=paste0("model/", Period, "1_E.G.RData"))
+# no_genotypes = length(levels(df$genotype.id))
+# dynamic_Asym = c(soyFix[1], rep(0,1*no_genotypes))
+# dynamic_xmid = c(soyFix[2], rep(0,3))
+# dynamic_scal = c(soyFix[3], rep(0,1*no_genotypes))
+# 
+# dynamic_vector <- append(dynamic_Asym, c(dynamic_xmid, dynamic_scal))
+# 
+# ##
+# start_time <- Sys.time()
+# 
+# Growth1_E.G <- update(cc_rf_scal,
+#                       fixed = list(Asym ~ genotype.id+platform,
+#                                    xmid ~ avg_temperature_14 + avg_precipitation_14 + avg_radiation_14,
+#                                    scal ~ genotype.id+platform),
+#                       start = dynamic_vector, control = list (msVerbose = TRUE,
+#                                                               maxIter = 100,
+#                                                               msMaxIter = 100))
+# end_time <- Sys.time()
+# print(end_time - start_time)
+# 
+# save(Growth1_E.G, file=paste0("model/", Period, "1_E.G.RData"))
 
 ########
 no_genotypes = length(levels(df$genotype.id))
@@ -253,7 +286,7 @@ save(Growth2_E.GxT, file=paste0("model/", Period, "2_E.GxT.RData"))
 ##
 start_time <- Sys.time()
 
-Growth3_E.GxP <- update(cc_rf_scal,
+Growth3_E.GxPT <- update(cc_rf_scal,
                         fixed = list(Asym ~ genotype.id+platform,
                                      xmid ~ avg_temperature_14+avg_precipitation_14+avg_radiation_14 ,
                                      scal ~ genotype.id:(avg_photothermal_14)+platform),
@@ -263,7 +296,7 @@ Growth3_E.GxP <- update(cc_rf_scal,
 end_time <- Sys.time()
 print(end_time - start_time)
 
-save(Growth3_E.GxP, file=paste0("model/", Period, "3_E.GxP.RData"))
+save(Growth3_E.GxPT, file=paste0("model/", Period, "3_E.GxPT.RData"))
 
 ##
 start_time <- Sys.time()
@@ -282,7 +315,7 @@ save(Growth4_E.GxR, file=paste0("model/", Period, "4_E.GxR.RData"))
 ##
 start_time <- Sys.time()
 
-Growth5_E.GxPre <- update(cc_rf_scal,
+Growth5_E.GxP <- update(cc_rf_scal,
                           fixed = list(Asym ~ genotype.id+platform,
                                        xmid ~ avg_temperature_14+avg_precipitation_14+avg_radiation_14 ,
                                        scal ~ genotype.id:(avg_precipitation_14)+platform),
@@ -292,31 +325,31 @@ Growth5_E.GxPre <- update(cc_rf_scal,
 end_time <- Sys.time()
 print(end_time - start_time)
 
-save(Growth5_E.GxPre, file=paste0("model/", Period, "5_E.GxPre.RData"))
+save(Growth5_E.GxP, file=paste0("model/", Period, "5_E.GxP.RData"))
+
 
 ###
 no_genotypes = length(levels(df$genotype.id))
 dynamic_Asym = c(soyFix[1], rep(0,1*no_genotypes))
 dynamic_xmid = c(soyFix[2], rep(0,3))
-dynamic_scal = c(soyFix[3], rep(0,2*no_genotypes+1))
+dynamic_scal = c(soyFix[3], rep(0,2*no_genotypes))
 
 dynamic_vector <- append(dynamic_Asym, c(dynamic_xmid, dynamic_scal))
 
 ##
 start_time <- Sys.time()
 
-Growth6_E.GxPxPre <- update(cc_rf_scal,
-                            fixed = list(Asym ~ genotype.id+platform,
-                                         xmid ~ avg_temperature_14 + avg_precipitation_14 + avg_radiation_14,
-                                         scal ~ genotype.id:(avg_photothermal_14+avg_precipitation_14)+platform),
-                            start = dynamic_vector, control = list (msVerbose = TRUE,
-                                                                    maxIter = 100,
-                                                                    msMaxIter = 100))
+Growth6_E.GxPT <- update(cc_rf_scal,
+                         fixed = list(Asym ~ genotype.id+platform,
+                                      xmid ~ avg_temperature_14+avg_precipitation_14+avg_radiation_14 ,
+                                      scal ~ genotype.id*(avg_photothermal_14)+platform),
+                         start = dynamic_vector, control = list (msVerbose = TRUE,
+                                                                 maxIter = 100,
+                                                                 msMaxIter = 100))
 end_time <- Sys.time()
 print(end_time - start_time)
 
-save(Growth6_E.GxPxPre, file=paste0("model/", Period, "6_E.GxPxPre.RData"))
-
+save(Growth6_E.GxPT, file=paste0("model/", Period, "6_E.GxPT.RData"))
 
 ####
 no_genotypes = length(levels(df$genotype.id))
@@ -326,24 +359,11 @@ dynamic_scal = c(soyFix[3], rep(0,3*no_genotypes))
 
 dynamic_vector <- append(dynamic_Asym, c(dynamic_xmid, dynamic_scal))
 
-##
-start_time <- Sys.time()
 
-Growth7_E.GxPxPre <- update(cc_rf_scal,
-                            fixed = list(Asym ~ genotype.id+platform,
-                                         xmid ~ avg_temperature_14 + avg_precipitation_14 + avg_radiation_14,
-                                         scal ~ genotype.id*(avg_photothermal_14+avg_precipitation_14)+platform),
-                            start = dynamic_vector, control = list (msVerbose = TRUE,
-                                                                    maxIter = 200,
-                                                                    msMaxIter = 200))
-end_time <- Sys.time()
-print(end_time - start_time)
-
-save(Growth7_E.GxPxPre, file=paste0("model/", Period, "7_E.GxRxPre.RData"))
 ######
 start_time <- Sys.time()
 
-Growth8_E.GxRxPre <- update(cc_rf_scal,
+Growth7_E.GxRxP <- update(cc_rf_scal,
                             fixed = list(Asym ~ genotype.id+platform,
                                          xmid ~ avg_temperature_14 + avg_precipitation_14 + avg_radiation_14,
                                          scal ~ genotype.id*(avg_radiation_14+avg_precipitation_14)+platform),
@@ -353,19 +373,35 @@ Growth8_E.GxRxPre <- update(cc_rf_scal,
 end_time <- Sys.time()
 print(end_time - start_time)
 
-save(Growth8_E.GxRxPre, file=paste0("model/", Period, "8_E.GxRxPre.RData"))
+save(Growth7_E.GxRxP, file=paste0("model/", Period, "7_E.GxRxP.RData"))
+
+
+##
+start_time <- Sys.time()
+
+Growth8_E.GxPTxP <- update(cc_rf_scal,
+                            fixed = list(Asym ~ genotype.id+platform,
+                                         xmid ~ avg_temperature_14 + avg_precipitation_14 + avg_radiation_14,
+                                         scal ~ genotype.id*(avg_photothermal_14+avg_precipitation_14)+platform),
+                            start = dynamic_vector, control = list (msVerbose = TRUE,
+                                                                    maxIter = 200,
+                                                                    msMaxIter = 200))
+end_time <- Sys.time()
+print(end_time - start_time)
+
+save(Growth8_E.GxPTxP, file=paste0("model/", Period, "8_E.GxPTxP.RData"))
+######
+
 #######
 
 
 if(Period=="Senescence"){
-  Senescence0_G <- Growth0_G
-  save(Senescence0_G, file=paste0("model/", Period, "0_G.RData"))
-  Senescence1_E.G <- Growth1_E.G
-  save(Senescence1_E.G, file=paste0("model/", Period, "1_E.G.RData"))
+  Senescence1_G <- Growth1_G
+  save(Senescence1_G, file=paste0("model/", Period, "1_G.RData"))
   Senescence2_E.GxT <- Growth1_E.G
   save(Senescence2_E.GxT, file=paste0("model/", Period, "2_E.GxT.RData"))
-  Senescence3_E.GxP <- Growth3_E.GxP
-  save(Senescence3_E.GxP, file=paste0("model/", Period, "3_E.GxP.RData"))
+  Senescence_E.GxPT <- Growth3_E.GxPT
+  save(Senescence_E.GxPT, file=paste0("model/", Period, "_E.GxPT.RData"))
   # Senescence4_E.GxP <- Growth4_E.GxP
   # save(Senescence4_E.GxP, file=paste0("model/", Period, "4_E.GxP.RData"))
   # Senescence5_E.GxPre <- Growth5_E.GxPre

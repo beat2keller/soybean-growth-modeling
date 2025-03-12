@@ -32,7 +32,7 @@ dynamic_vector <- append(dynamic_Asym, c(dynamic_xmid, dynamic_scal))
 # ##
 # start_time <- Sys.time()
 # 
-# Growth6_E.GxPxPre_Contr.Sum <- update(cc_rf_scal,
+# Growth_E.GxPTxP_Contr.Sum <- update(cc_rf_scal,
 #                                       fixed = list(Asym ~ genotype.id+platform,
 #                                                    xmid ~ avg_temperature_14 + avg_precipitation_14 + avg_radiation_14,
 #                                                    scal ~ genotype.id:(avg_photothermal_14+avg_precipitation_14)+platform),
@@ -42,12 +42,12 @@ dynamic_vector <- append(dynamic_Asym, c(dynamic_xmid, dynamic_scal))
 # end_time <- Sys.time()
 # print(end_time - start_time)
 # 
-# save(Growth6_E.GxPxPre_Contr.Sum, file=paste0("model/", Period, "6_E.GxPxPre_Contr.Sum.RData"))
+# save(Growth_E.GxPTxP_Contr.Sum, file=paste0("model/", Period, "6_E.GxPxPre_Contr.Sum.RData"))
 
 # this runs for up to 2 hours, you can also load it in here:
-load("model/Growth6_E.GxPxPre_Contr.Sum.RData")
+load("model/Growth_E.GxPTxP_Contr.Sum.RData")
 
-ci <- data.frame(lower= intervals(Growth6_E.GxPxPre_Contr.Sum)$fixed[,1], est = intervals(Growth6_E.GxPxPre_Contr.Sum)$fixed[,2], upper = intervals(Growth6_E.GxPxPre_Contr.Sum)$fixed[,3])
+ci <- data.frame(lower= intervals(Growth_E.GxPTxP_Contr.Sum)$fixed[,1], est = intervals(Growth_E.GxPTxP_Contr.Sum)$fixed[,2], upper = intervals(Growth_E.GxPTxP_Contr.Sum)$fixed[,3])
 ci$names <- rownames(ci)
 ci$interval <- ci$upper - ci$lower
 
@@ -143,7 +143,7 @@ df$genotype.id <- relevel(df$genotype.id, ref= as.character(unique(df$genotype.i
 # start_time <- Sys.time()
 
 
-# Growth6_E.GxPxPre <- update(cc_rf_scal,
+# Growth_E.GxPTxP <- update(cc_rf_scal,
 #                                       fixed = list(Asym ~ genotype.id+platform,
 #                                                    xmid ~ avg_temperature_14 + avg_precipitation_14 + avg_radiation_14,
 #                                                    scal ~ genotype.id:(avg_photothermal_14+avg_precipitation_14)+platform),
@@ -153,12 +153,12 @@ df$genotype.id <- relevel(df$genotype.id, ref= as.character(unique(df$genotype.i
 # end_time <- Sys.time()
 # print(end_time - start_time)
 # 
-# save(Growth6_E.GxPxPre, file=paste0("model/", Period, "6_E.GxPxPre.RData"))
+# save(Growth_E.GxPTxP, file=paste0("model/", Period, "6_E.GxPxPre.RData"))
 
 # this runs for up to 20 mins, you can also load it in here:
-load("model/Growth6_E.GxPxPre.RData")
+load("model/Growth_E.GxPTxP.RData")
 
-ci_baseline <- data.frame(lower= intervals(Growth6_E.GxPxPre)$fixed[,1], est = intervals(Growth6_E.GxPxPre)$fixed[,2], upper = intervals(Growth6_E.GxPxPre)$fixed[,3])
+ci_baseline <- data.frame(lower= intervals(Growth_E.GxPTxP)$fixed[,1], est = intervals(Growth_E.GxPTxP)$fixed[,2], upper = intervals(Growth_E.GxPTxP)$fixed[,3])
 ci_baseline$names <- rownames(ci_baseline)
 
 # calculating the genotype-specific asymptote
@@ -179,11 +179,15 @@ for (i in 1:length(na.omit(candidates))) {
   print(candidate)
   candidate_genotypes = c(candidate_genotypes, candidate)
 }
-candidate_genotypes
+
+
+write.csv(data.frame(candidate_genotypes),
+          file = "model/candidates/candidate_genotypes.csv",
+          row.names = FALSE)
 
 # This way, you obtain a list of ideal candidates
-# our ideal candidates are: 10004, 10009, 10014, 10015, 10018, 10020
-
+# our ideal candidates are: 
+candidate_genotypes
 
 # Next, we refit the model with each of those candidates as reference, so we get the
 # correct confidence intervals
@@ -280,10 +284,10 @@ dt[, c("Scale", "Level") := tstrsplit(variable, "_")]
 dt$variable <- NULL
 dt_cats <- dcast(dt, ...~Level)
 
-load("model/Growth6_E.GxPxPre.RData")
-overview_all_df = intervals(Growth6_E.GxPxPre)$fixed
+load("model/Growth_E.GxPTxP.RData")
+overview_all_df = intervals(Growth_E.GxPTxP)$fixed
   
-add_gen_id <- read.csv("/home/kellebea/public/Evaluation/Projects/KP0023_legumes/Design/2024/ids_soybean_cleaned.csv")
+add_gen_id <- read.csv("data/ids_soybean_cleaned.csv")
 add_gen_id <- add_gen_id[,c("id","name")]
 add_gen_id$Genotype <- add_gen_id$name
 add_gen_id$genotype.id <- as.character(add_gen_id$id)

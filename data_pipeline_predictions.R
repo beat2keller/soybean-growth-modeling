@@ -5,9 +5,14 @@ setwd("~/public/Evaluation/Projects/KP0023_legumes/Scripts/canopy-cover-stats-la
 
 library(data.table)
 library(dplyr)
+library(nlme)
 
 # load data
 soybean_data = fread("data/soybean_data_for_modelling.csv")
+candidate_genotypes <- read.csv("model/candidates/candidate_genotypes.csv", 
+                 colClasses = "character",
+                 header = TRUE)
+
 #
 weathter_data_modelling = fread("data/weather_data_for_modelling.csv")
 weathter_data <- melt.data.table(weathter_data_modelling, id.vars=c("WeatherVariable","Location","Date","Year","Measure_7","Measure_14","Measure_28","Measure_56"),measure.vars = c("CumulativeDailyMean"),variable.name = "WeatherCalcVar",value.name="WeatherValue") ##,"SDoverTimeDailyMean"
@@ -22,12 +27,12 @@ WeatherAtSowing <- unique(Weather_data_sub)
 WeatherAtSowing$WeatherValueAtSowing <- WeatherAtSowing$WeatherValue
 
 
-load("model/Growth6_E.GxPxPre.RData")
-Growth6_E.GxPxPre
+load("model/Growth_E.GxPTxP.RData")
+Growth_E.GxPTxP
 
-coefs <- fixed.effects(Growth6_E.GxPxPre)
+coefs <- fixed.effects(Growth_E.GxPTxP)
 coefs <- as.data.frame(coefs)
-coefs$Model <-  "Growth6_E.GxPxPre"
+coefs$Model <-  "Growth_E.GxPTxP"
 
 coefs$term <- rownames(coefs)
 
@@ -182,9 +187,15 @@ model_df$avg_photothermal_14<- (WeatherDataToPreodict_cast$Measure_14_Phototherm
 model_df$avg_humidity_14 <- (WeatherDataToPreodict_cast$Measure_14_Humidity)
 model_df$avg_vpd_14 <- (WeatherDataToPreodict_cast$Measure_14_VPD)
 
-# model_df$gdd_temperature <- (WeatherDataToPreodict_cast$Sowing_to_Measure_Temperature)/model_df$time_since_sowing # add growing degree day (gdd)
+# add genotype id
 
-model_df
+add_gen_id <- read.csv("data/ids_soybean_cleaned.csv")
+add_gen_id <- add_gen_id[,c("id","name")]
+add_gen_id$Genotype <- add_gen_id$name
+add_gen_id$genotype.id <- as.character(add_gen_id$id)
+add_gen_id$name <- NULL
+add_gen_id$id <- NULL
+model_df <- merge(model_df, add_gen_id, by="genotype.id")
 
 # Load necessary packages
 require(ggplot2)
@@ -192,7 +203,7 @@ require(data.table)
 require(nlme)
 
 # --- Step 4. Run predictions using the loaded model ---
-model_df$fit <- predict(Growth6_E.GxPxPre, newdata = model_df, level = 0)
+model_df$fit <- predict(Growth_E.GxPTxP, newdata = model_df, level = 0)
 
 # Bootstrapping to estimate confidence intervals
 set.seed(123)  # For reproducibility
@@ -201,7 +212,7 @@ n_rows <- nrow(model_df)  # Number of observations
 boot_preds <- matrix(NA, nrow = n_rows, ncol = n_boot)
 
 # Extract residuals (Ensure they match dataset length)
-residuals_fit <- residuals(Growth6_E.GxPxPre, level = 0)  # Fixed effects residuals
+residuals_fit <- residuals(Growth_E.GxPTxP, level = 0)  # Fixed effects residuals
 if (length(residuals_fit) != n_rows) {
   residuals_fit <- residuals_fit[1:n_rows]  # Trim if too long (ensure same length)
 }
@@ -227,30 +238,33 @@ model_df <- setDT(model_df)
 # Subset based on selected genotypes
 p <- model_df
 p <- subset(p, genotype.id %in% as.integer(selected_genotype))
-p$Scenario <- "Photothermal product"
-p$Scenario[p$genotype.id %in% selected_genotype_prec] <- "Precipitation"
+p$Scenario <- "Extrem environment: Photothermal product"
+p$Scenario[p$genotype.id %in% selected_genotype_prec] <- "Extrem environment: Precipitation"
 
 
 p1 <- subset(model_df, genotype.id %in% as.integer(candidate_genotypes))
-p1$Scenario <- "Photothermal product"
+p1$Scenario <- "Extrem environment: Photothermal product"
 p2 <- subset(model_df, genotype.id %in% as.integer(candidate_genotypes))
-p2$Scenario <- "Precipitation"
+p2$Scenario <- "Extrem environment: Precipitation"
 
 p <- rbind(p,p1,p2)
 
-p <- subset(p, !(Scenario == "Photothermal product" & scenario %in% c("Rainy", "Dry")))
-p <- subset(p, !(Scenario == "Precipitation" & scenario %in% c("Cold", "Warm", "Hot (scenario)")))
+p$GxE <- "stable"
+p$GxE[p$genotype.id%in%coefs_max_abs$max_genotype] <- "unstable"
+
+
+p <- subset(p, !(Scenario == "Extrem environment: Photothermal product" & scenario %in% c("Rainy", "Dry")))
+p <- subset(p, !(Scenario == "Extrem environment: Precipitation" & scenario %in% c("Cold", "Warm", "Hot (scenario)")))
 
 # Define color palette
 tol6qualitative = c("#332288", "#88CCEE", "#117733", "#DDCC77", "#CC6677", "#AA4499")
 
 # Create the plot with confidence intervals
-ggFit <- ggplot(data = p, aes(time_since_sowing, Fit, color = genotype.id, shape = scenario)) +
-  ylab("Canopy cover (%)") +
+ggFit <- ggplot(data = p, aes(time_since_sowing, Fit, color = Genotype, shape = scenario)) +
+  ylab("Canopy cover (%)") + xlab("Days after sowing (d)")+
   theme_bw() +
   theme(
     strip.placement = "outside",
-    axis.title.x = element_blank(),
     strip.background = element_blank(),
     legend.key.size = unit(0.9, "lines"),
     legend.position = "top",
@@ -262,10 +276,12 @@ ggFit <- ggplot(data = p, aes(time_since_sowing, Fit, color = genotype.id, shape
   ) +
   # geom_ribbon(aes(ymin = CI_lower, ymax = CI_upper, fill = genotype.id), alpha = 0.2, color = NA) +  # Add CI
   geom_point(size = 2, alpha = 1) +
-  scale_color_manual(values = tol6qualitative) +
-  geom_line(size = 0.5, alpha = 0.5) +
+  scale_color_manual(name="Genotype",values = tol6qualitative) +
+  scale_shape_manual("Environment \n (Scenario)" ,values = c(16,17,4,5,15)) +
+  geom_line(size = 0.5, alpha = 0.5, aes(linetype = GxE)) +
   ylim(c(0,1)) +
-  facet_grid(. ~ Scenario, scale = "free", switch = "both")
+  guides(color = guide_legend(nrow=2))+  guides(shape = guide_legend(nrow=2))+ guides(linetype = guide_legend(nrow=2))+
+  facet_grid(. ~ Scenario, scale = "free", switch = "y")
 
 ggFit
 
@@ -281,21 +297,19 @@ p <- subset(p, !(Scenario=="Photothermal product"& scenario%in%c("Rainy","Dry"))
 p <- subset(p, !(Scenario=="Precipitation"& scenario%in%c("Cold","Warm","Hot (scenario)")))
 
 
-ggWeather <- ggplot(data=p,aes(time_since_sowing, value,  shape=scenario))+ ylab("Weather conditions")+
-  theme_bw()+theme(strip.placement = "outside",axis.title.x = element_blank(), strip.background = element_blank(),legend.key.size = unit(0.9, "lines"), legend.position="none",panel.border = element_rect(colour = "black", fill=NA, linewidth=1), panel.grid.minor = element_blank(),panel.grid.major = element_blank(),axis.text.x = element_text(angle = 0, hjust = 0.5),text = element_text(size=9))+
+ggWeather <- ggplot(data=p,aes(time_since_sowing, value,  shape=scenario))+ ylab("Environment")+xlab("Days after sowing (d)")+
+  theme_bw()+theme(strip.placement = "outside", strip.background = element_blank(),
+      legend.key.size = unit(0.9, "lines"), legend.position="none",panel.border = element_rect(colour = "black", fill=NA, linewidth=1),
+      panel.grid.minor = element_blank(),panel.grid.major = element_blank(),axis.text.x = element_text(angle = 0, hjust = 0.5),text = element_text(size=9))+
+  geom_line(color="grey")+
   geom_point(size=2, alpha=1)+
   scale_color_manual(values = tol6qualitative)+
+  scale_shape_manual(values = c(16,17,4,5,15)) +
   # geom_smooth(aes(Date, Fit,group=genotype.id),size=0.1)+
   # ylim(c(0,1))+
   facet_wrap(.~Scenario,scale="free",switch="both")
 ggWeather
 
-require(cowplot)
-
-first_row <- plot_grid(ggFit, ggWeather,  ncol = 1, rel_heights = c(1,0.5), labels = c("A","B"))  #,vjust=0.5+
-first_row
-
-# ggsave("Predictions_scenarios_soybean.pdf", width = 180, height = 200, units = "mm", dpi = 100, first_row)
 
 
 
@@ -307,16 +321,16 @@ tol6qualitative=c("#332288", "#88CCEE", "#117733", "#DDCC77", "#CC6677","#AA4499
 
 require(ggplot2)
 
-ggFit <- ggplot(data=p,aes(time_since_sowing, Fit, color=genotype.id, shape=scenario))+ ylab("Canopy cover (%)")+
+ggplot(data=p,aes(time_since_sowing, Fit, color=genotype.id, shape=scenario))+ ylab("Canopy cover (%)")+
   theme_bw()+theme(strip.placement = "outside",axis.title.x = element_blank(), strip.background = element_blank(),legend.key.size = unit(0.9, "lines"), legend.position="top",panel.border = element_rect(colour = "black", fill=NA, linewidth=1), panel.grid.minor = element_blank(),panel.grid.major = element_blank(),axis.text.x = element_text(angle = 0, hjust = 0.5),text = element_text(size=9))+
+  geom_line(size=0.5, alpha=0.5)+
   geom_point(size=2, alpha=1)+
   scale_color_manual(values = tol6qualitative)+
-  geom_line(size=0.5, alpha=0.5)+
   # scale_shape_manual(values =c(19,8))+
   # geom_smooth(size=0.1,fill=NA)+
   ylim(c(0,1))
   # facet_grid(.~Scenario,scale="free",switch="both")
-ggFit
+
 
 
 ############
@@ -325,8 +339,8 @@ tol12qualitative=c("#332288", "#6699CC", "#88CCEE", "#44AA99", "#117733", "#9999
 
 
 
-load("model/Growth6_E.GxPxPre.RData")
-overview_all_df = intervals(Growth6_E.GxPxPre)$fixed
+load("model/Growth_E.GxPTxP.RData")
+overview_all_df = intervals(Growth_E.GxPTxP)$fixed
 
 
 ######
@@ -365,15 +379,24 @@ p <- subset(overview_all_df,Scale!="Intercept")
 
 p[,mean_est:=mean(est.),by=variable]
 # 
-ggIdeal_coef <- ggplot(p, aes(x = Genotype, y = est., color = Selection)) +xlab("Breeding line")+ylab("Coefficient")+
+ggIdeal_coef <- ggplot(p, aes(x = Genotype, y = est., color = Selection)) +xlab("Genotype")+ylab("Coefficient")+
+  theme_bw()+theme(plot.title=element_text(hjust=-0.2),strip.placement = "outside", panel.spacing.x = unit(-0.2, "lines"),
+      strip.background = element_blank(),legend.title = element_blank(),legend.key.height=unit(0.5,"line"),legend.key.size = unit(1, "lines"),
+      legend.position="none",panel.border = element_rect(colour = "black", fill=NA, size=1), panel.grid.minor = element_blank(),panel.grid.major = element_blank(),axis.text.x = element_blank(),text = element_text(size=8))+
   geom_point(size =0.5 ) +
   geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2, position = position_dodge(width = 0.5), color="grey") +  # Add error bars
-  geom_point(data=subset(p, genotype.id%in%select_geno),size =1.5 )+ 
+  geom_point(data=subset(p, genotype.id%in%select_geno),size =2 )+ 
   geom_errorbar(data=subset(p, genotype.id%in%select_geno),aes(ymin = lower, ymax = upper), width = 0.2, position = position_dodge(width = 0.5), color="black") +  # Add error bars
-  theme_bw()+theme(plot.title=element_text(hjust=-0.2),strip.placement = "outside", panel.spacing.x = unit(-0.2, "lines"), strip.background = element_blank(),legend.title = element_blank(),legend.key.height=unit(0.5,"line"),legend.key.size = unit(1, "lines"), legend.position="none",panel.border = element_rect(colour = "black", fill=NA, size=1), panel.grid.minor = element_blank(),panel.grid.major = element_blank(),axis.text.x = element_blank(),text = element_text(size=8),axis.title.y = element_blank())+
   scale_color_manual(values =c(tol6qualitative,"grey"))+
   geom_hline(aes(yintercept=mean_est),linetype="dashed")+
   facet_grid(variable~.,scales = "free",switch="both")
 
 ggIdeal_coef
 ####
+
+require(cowplot)
+
+first_row <- plot_grid(ggFit, ggWeather, ggIdeal_coef,  ncol = 1, rel_heights = c(1.2,0.5,0.7), labels = c("AUTO"))  #,vjust=0.5+
+first_row
+
+# ggsave("Predictions_scenarios_soybean.pdf", width = 180, height = 220, units = "mm", dpi = 100, first_row)
