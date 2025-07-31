@@ -5,7 +5,7 @@ setwd("~/public/Evaluation/Projects/KP0023_legumes/Scripts/canopy-cover-stats-la
 # packages ---------
 library(data.table)
 library(stringr)
-library(tidyverse)
+# library(tidyverse)
 #load data ---------
 soybeans_FIP_UAV <- fread("data/soybean_pixels_data.csv")
 # soybeans_FIP_UAV <- subset(soybeans_FIP_UAV, Period=="Growth"&year_site.UID=="FPSB016")

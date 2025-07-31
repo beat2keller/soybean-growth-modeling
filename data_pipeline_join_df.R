@@ -10,7 +10,7 @@ library(dplyr)
 soybean_data = fread("data/soybean_data_for_modelling.csv")
 #
 weathter_data_modelling = fread("data/weather_data_for_modelling.csv")
-weathter_data <- melt.data.table(weathter_data_modelling, id.vars=c("WeatherVariable","Location","Date","Year","Measure_7","Measure_14","Measure_28","Measure_56"),measure.vars = c("CumulativeDailyMean"),variable.name = "WeatherCalcVar",value.name="WeatherValue") ##,"SDoverTimeDailyMean"
+weathter_data <- melt.data.table(weathter_data_modelling, id.vars=c("WeatherVariable","Location","Date","Year","Measure_7","Measure_14","Measure_21"),measure.vars = c("CumulativeDailyMean"),variable.name = "WeatherCalcVar",value.name="WeatherValue") ##,"SDoverTimeDailyMean"
 # remove NA
 weathter_data <- weathter_data[!is.na(weathter_data$WeatherValue),]
 
@@ -29,7 +29,7 @@ PhenoWeatherData <- PhenoWeatherData[!is.na(PhenoWeatherData$WeatherVariable),]
 # sowing to measure variables
 PhenoWeatherData$Sowing_to_Measure <- PhenoWeatherData$WeatherValue-PhenoWeatherData$WeatherValueAtSowing
 PhenoWeatherData <- PhenoWeatherData[order(PhenoWeatherData$Date),]
-PhenoWeatherData_cast <- dcast.data.table(PhenoWeatherData, Filename+genotype.name+genotype.id+Year+Location+year_site.UID+plot_number+plot.UID+plot_grouped+range+row+Date+value+variable+variable.1+date_of_sowing+platform+Period~WeatherVariable, value.var=c("Sowing_to_Measure","Measure_7","Measure_14","Measure_56","Measure_28")) # ~WeatherVariable+WeatherCalcVar
+PhenoWeatherData_cast <- dcast.data.table(PhenoWeatherData, Filename+genotype.name+genotype.id+Year+Location+year_site.UID+plot_number+plot.UID+plot_grouped+range+row+Date+value+variable+variable.1+date_of_sowing+platform+Period~WeatherVariable, value.var=c("Sowing_to_Measure","Measure_7","Measure_14","Measure_21")) # ~WeatherVariable+WeatherCalcVar
 
 
 # create new variables 
@@ -61,16 +61,16 @@ model_df$plot_grouped   <- ordered(as.factor(model_df$plot_grouped))
 model_df$date          <- as.Date(model_df$date)
 
 # measure variables
-model_df$avg_temperature_28 <- (PhenoWeatherData_cast$Measure_28_Temperature)
-model_df$avg_precipitation_28 <- (PhenoWeatherData_cast$Measure_28_Precipitation)
-model_df$avg_radiation_28 <- (PhenoWeatherData_cast$Measure_28_RadiationCap)
-model_df$avg_photothermal_28<- (PhenoWeatherData_cast$Measure_28_PhotothermalProd)
-model_df$avg_vpd_28 <- (PhenoWeatherData_cast$Measure_28_VPD)
-model_df$avg_humidity_28 <- (PhenoWeatherData_cast$Measure_28_Humidity)
+model_df$avg_temperature_21 <- (PhenoWeatherData_cast$Measure_21_Temperature)
+model_df$avg_precipitation_21 <- (PhenoWeatherData_cast$Measure_21_Precipitation)
+model_df$avg_radiation_21 <- (PhenoWeatherData_cast$Measure_21_RadiationCap)
+model_df$avg_photothermal_21<- (PhenoWeatherData_cast$Measure_21_PhotothermalProd)
+model_df$avg_vpd_21 <- (PhenoWeatherData_cast$Measure_21_VPD)
+model_df$avg_humidity_21 <- (PhenoWeatherData_cast$Measure_21_Humidity)
 
 model_df$avg_temperature_14 <- (PhenoWeatherData_cast$Measure_14_Temperature)
 model_df$avg_precipitation_14 <- (PhenoWeatherData_cast$Measure_14_PrecipitationCap)
-model_df$avg_precipitation_28 <- (PhenoWeatherData_cast$Measure_28_PrecipitationCap)
+model_df$avg_precipitation_21 <- (PhenoWeatherData_cast$Measure_21_PrecipitationCap)
 model_df$avg_radiation_14 <- (PhenoWeatherData_cast$Measure_14_Radiation)
 model_df$avg_photothermal_14<- (PhenoWeatherData_cast$Measure_14_PhotothermalProd)
 model_df$avg_photothermalunit_14<- (PhenoWeatherData_cast$Measure_14_PhotothermalUnit)

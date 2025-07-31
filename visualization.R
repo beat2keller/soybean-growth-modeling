@@ -46,6 +46,7 @@ load("model/Growth6_E.GxPT.RData")
 load("model/Growth7_E.GxRxP.RData")
 # load("model/Growth8_E.GxPTxP.RData") # did not converge
 
+# load("model/Growth_E.GxPTxP_Contr.Sum.RData") # did not converge
 
 anova_result_Gro <-anova(Growth1_G, Growth2_E.GxT,  Growth3_E.GxPT,  Growth4_E.GxR, Growth5_E.GxP, Growth6_E.GxPT, Growth7_E.GxRxP, Growth_E.GxPTxP)
 anova_result_Gro
@@ -59,12 +60,13 @@ load("model/Senescence_E.GxPT.RData")
 # model comparison
 load("model/Senescence1_G.RData")
 load("model/Senescence2_E.GxT.RData")
+# load("model/Senescence4_E.GxV.RData")
 # load("model/Senescence4_E.GxR.RData") did not converge
 # load("model/Senescence5_E.GxPre.RData") did not converge
 # load("model/Senescence6_E.GxPxPre.RData") did not converge
 
 # Perform the ANOVA
-anova_result_Sen <-anova(Senescence1_G,  Senescence2_E.GxT, Senescence_E.GxPT)
+anova_result_Sen <-anova(Senescence1_G, Senescence2_E.GxT, Senescence_E.GxPT)
 anova_result_Sen
 ####
 
@@ -87,8 +89,8 @@ df$Model1 <- fitted(Growth1_G)
 df$Model3 <- fitted(Growth3_E.GxPT)
 # df$Model4 <- fitted(Model4)
 # df$Model5 <- fitted(Model5)
-
-
+Model_names <- data.frame(Model=paste0("Model",c(0:1,3,10:11)),Name=c("Growth_E.GxPTxP","Growth1_G","Growth3_E.GxPT","Senescence_E.GxPT","Senescence1_G"))
+# p <- subset(df, Location=="Delley")
 df[,nrow(na.omit(.SD)[!duplicated(genotype.id),]),by=year_site.UID]
 
 p_Growth <- melt.data.table(df, measure.vars = c(paste0("Model",c(0,1,3))),variable.name = "Model", value.name = "Fit")
@@ -123,12 +125,10 @@ df_all$value <- sin(df_all$value)^2 # backtransform
 df_all$Fit <- sin(df_all$Fit)^2 # backtransform
 
 
-add_gen_id <- read.csv("data/ids_soybean_cleaned.csv")
-add_gen_id <- add_gen_id[,c("id","name")]
-add_gen_id$genotype.name <- add_gen_id$name
-add_gen_id$genotype.id <- as.character(add_gen_id$id)
-add_gen_id$name <- NULL
-add_gen_id$id <- NULL
+design_all <- read.csv("data/design_2015_2022.csv")
+add_gen_id <- unique(design_all[,c("genotype.id","genotype.name")])
+add_gen_id$genotype.id <- as.character(add_gen_id$genotype.id)
+
 df_all <- merge(df_all, add_gen_id, by="genotype.id")
 
 ##### inspect fits
@@ -187,28 +187,35 @@ ggFit
 #   print(gg1)
 # })
 
+len_geno <- df_all[,length(unique(year_site.UID)),by=genotype.id]
+len_geno <- len_geno[order(len_geno$V1,decreasing = T),]
 
-
-p <- subset(df_all, genotype.id%in%candidate_genotypes&Model%in%c("Model0","Model3","Model6","Model10","Model11")&Location=="Eschikon"&platform=="FIP")
+p <- subset(df_all, genotype.id%in%len_geno$genotype.id[1:2]&Model%in%c("Model0","Model1","Model3","Model10","Model11")&Location=="Eschikon"&platform=="FIP")
 p$Date <- p$date
 p$plot_grouped_global <- paste(p$plot_grouped_global, p$genotype.id)
 p <- setDT(p)[,Rep:=as.numeric(as.factor(UID)),by=.(genotype.id,date,year_site.UID)]
+p <- subset(p, Rep<5)
 p$Rep <- paste("Rep",p$Rep )
+
+p <- merge(p, Model_names, by="Model")
 
 ggFit_idealLines <- ggplot(data=p,aes(Date, value, shape=Rep))+ ylab("Canopy cover (%)")+
   theme_bw()+theme(strip.placement = "outside",axis.title.x = element_blank(), strip.background = element_blank(),legend.key.size = unit(0.9, "lines"), legend.position="top",panel.border = element_rect(colour = "black", fill=NA, linewidth=1), panel.grid.minor = element_blank(),panel.grid.major = element_blank(),axis.text.x = element_text(angle = 0, hjust = 0.5),text = element_text(size=9))+
   geom_point(size=1.5, alpha=1)+
-  geom_line(data=subset(p, Period=="Growth"),aes(Date, Fit,group=paste(plot_grouped_global,platform,Model),color=Model))+
-  geom_line(data=subset(p, Period=="Senescence"),aes(Date, Fit,group=paste(plot_grouped_global,platform,Model),color=Model))+
+  geom_line(data=subset(p, Period=="Growth"),aes(Date, Fit,group=paste(plot_grouped_global,platform,Model),color=Name))+
+  geom_line(data=subset(p, Period=="Senescence"),aes(Date, Fit,group=paste(plot_grouped_global,platform,Model),color=Name))+
   scale_color_manual(values = rev(tol5qualitative))+
   guides(color = guide_legend(nrow=2))+
+  guides(shape = guide_legend(nrow=2))+
   facet_grid(genotype.id+platform~year_site.UID,scale="free",switch="both", labeller = label_parsed)
 
 print(ggFit_idealLines)
 
 # ggsave("Soybean_IdealLines_Fit.pdf", width = 170, height = 140, units = "mm", dpi = 100, ggFit_idealLines)
+# ggsave("Soybean_IdealLines_Fit.png", width = 170, height = 140, units = "mm", dpi = 300, ggFit_idealLines)
 
-p <- subset(df_all, genotype.id%in%candidate_genotypes[1]&Model%in%c("Model0","Model3","Model6","Model11")&Location=="Eschikon"&year_site.UID=="FPSB012")
+
+p <- subset(df_all, genotype.id%in%candidate_genotypes[2,]&Model%in%c("Model0","Model3","Model10")&Location=="Eschikon")
 p$Date <- p$date
 p$plot_grouped_global <- paste(p$plot_grouped_global, p$genotype.id)
 p <- setDT(p)[,Rep:=as.numeric(as.factor(UID)),by=.(genotype.id,date,year_site.UID)]
@@ -359,7 +366,7 @@ unique(p$year_site.UID[!is.na(p$variable_extreme)] )
 unique(p$Period)
 
 
-ideal_candidate <- candidate_genotypes# c("10025", "10051")
+ideal_candidate <- candidate_genotypes[,1]# c("10025", "10051")
 unique(p$genotype.name[p$genotype.id%in% ideal_candidate] )
 
 p$variable_extreme[is.na(p$variable_extreme)] <- "average"
@@ -410,7 +417,7 @@ ggGrowthCurves
 #####
 #####
 
-SpATsBLUE <- read.csv("/home/kellebea/public/Evaluation/Projects/KP0023_legumes/Soybean/201x/SpATScorr-20250123-BLUE_Soybean.csv")#read.csv("SpATScorr-20231201-BLUE_Soybean.csv")
+SpATsBLUE <- read.csv("~/public/Evaluation/Projects/KP0023_legumes/Soybean/201x/Get_raw_data_soybean/data/RefTraits_Soybean_Eschikon_2015_22_BLUEs.csv")
 unique(SpATsBLUE$year_site.UID)
 
 ### check year_site.UID
@@ -426,9 +433,8 @@ setDT(SpATsBLUE_yield)[,length(genotype.id[!duplicated(genotype.id)])]
 # coefs[,length(genotype.id[!duplicated(genotype.id)])]
 # setDT(df_o)[,length(genotype.id[!duplicated(genotype.id)])]
 
-SpATsBLUE_overall_CC <- read.csv("/home/kellebea/public/Evaluation/Projects/KP0023_legumes/Soybean/201x/BLUEs_CanopyCover_overall_Soybean.csv")
-SpATsBLUE_overall_CC <- setDT(SpATsBLUE_overall_CC)
 
+####################
 names(df_all)
 WeatherVars <- unique(df_all[,c(8,11,13,16:30)])
 WeatherVars_melt <- melt.data.table(WeatherVars, measure.vars =c("avg_temperature_14","avg_radiation_14","avg_precipitation_14") )
@@ -442,13 +448,35 @@ ggplot(data=p, aes(x=Year, y=value) ) +
 
 
 
-BLUEs <- rbind(SpATsBLUE_overall_CC, SpATsBLUE_yield,fill=T)
-
+###
+source("~/public/Evaluation/Projects/KP0023_legumes/Scripts/fip-soybean-canopycover/functions/spats_blues.R")
 
 ##########
+SpATsBLUE_overall_CC <- fread("~/public/Evaluation/Projects/KP0023_legumes/Soybean/201x/BLUEs_CanopyCover_overall_Soybean.csv")
+RefTraits_2015_22 <- fread("data/RefTraits_2015_22_raw.csv")
+unique(paste(RefTraits_2015_22$Date, RefTraits_2015_22$variable))
+p1 <- subset(RefTraits_2015_22, variable%in%c("Yield","Protein.content","Protein.yield","End.of.maturity"))
+p1$var_data <- (paste(p1$Date, p1$variable))
+p1 <- subset(p1, !var_data%in%c("2021-09-17 End.of.maturity","2021-09-20 End.of.maturity", "2021-09-22 End.of.maturity", "2021-09-24 End.of.maturity"))
 
 
-SpATsBLUE_overall <- fread("/home/kellebea/public/Evaluation/Projects/KP0023_legumes/Soybean/201x/SpATScorr-20250227-BLUE_overall_Soybean.csv")
+
+p1$year_site.UID2 <- p1$year_site.UID
+p1$year_site.UID <- paste(p1$year_site.UID,p1$Date)
+
+p1 <- droplevels(p1)
+p1$variable2 <- p1$variable
+setDT(p1)[, nrow(na.omit(.SD)), by=.(variable2)]
+# p1 <- subset(p1, NperTrial>35)
+p1$Treatment <- as.factor(p1$Treatment)
+# 
+SpatsAcrossAllEnv <- setDT(p1)[, ( getSpats(.SD) ), by=.(variable2)] ##
+
+SpATsBLUE_overall <- SpatsAcrossAllEnv
+SpATsBLUE_overall$genotype.id <- as.character(SpATsBLUE_overall$genotype.id )
+SpATsBLUE_overall <- merge(SpATsBLUE_overall, add_gen_id, by="genotype.id")
+SpATsBLUE_overall$Genotype_name <- SpATsBLUE_overall$genotype.name
+
 # SpATsBLUE_overall <- subset(SpATsBLUE_overall, predicted.values>1) #fix me. is for yield
 yield_variables <- unique(SpATsBLUE_overall$variable)
 # SpATsBLUE_overall <- dcast.data.table(SpATsBLUE_overall, genotype.id+year_site.UID+Date~variable, value.var = "predicted.values")
@@ -461,14 +489,117 @@ SpATsBLUE_overall$value <- SpATsBLUE_overall$predicted.values
 SpATsBLUE_overall$genotype.id <- as.character(SpATsBLUE_overall$genotype.id)
 
 
-yield_coefs <- merge(SpATsBLUE_overall,coefs, by="genotype.id",allow.cartesian=TRUE)
+
+library(data.table)
+library(ggplot2)
+
+setDT(SpATsBLUE_overall)
+
+# Add error bars and selection info
+SpATsBLUE_overall[, `:=`(
+  lower = predicted.values - standard.errors,
+  upper = predicted.values + standard.errors,
+  Selection = fifelse(Genotype_name == "CH90137", "CH90137",
+                      fifelse(Genotype_name == "Opaline", "Opaline",
+                              fifelse(Genotype_name == "Gallec", "Gallec", "Other")))
+)]
+
+# Create a temporary ordering column
+SpATsBLUE_overall[, temp_order := .I, by = variable]
+
+# Ordered factor by predicted values per variable
+SpATsBLUE_overall[, Genotype_ordered := factor(temp_order,
+                                               levels = .SD[order(predicted.values)]$temp_order),
+                  by = variable]
+
+# Mean estimate per variable
+SpATsBLUE_overall[, mean_est := mean(predicted.values, na.rm = TRUE), by = variable]
+
+# Updated colors
+custom_colors <- c("CH90137" = "red", "Opaline" = "blue", "Gallec" = "darkgreen", "Other" = "grey")
+
+# Plot
+ggplot(SpATsBLUE_overall, aes(x = Genotype_ordered, y = predicted.values, color = Selection)) +
+  xlab("Genotype") + ylab("Estimated Value") +
+  theme_bw() +
+  theme(
+    legend.position = "top",
+    strip.background = element_blank(),
+    panel.grid = element_blank(),
+    panel.border = element_rect(colour = "black", fill = NA),
+    axis.text.x = element_blank(),
+    text = element_text(size = 8)
+  ) +
+  geom_point(size = 0.5) +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2, color = "grey") +
+  geom_point(data = SpATsBLUE_overall[Genotype_name %in% c("CH90137", "Opaline", "Gallec")], size = 2) +
+  geom_errorbar(data = SpATsBLUE_overall[Genotype_name %in% c("CH90137", "Opaline", "Gallec")],
+                aes(ymin = lower, ymax = upper), width = 0.2, color = "black") +
+  scale_color_manual(values = custom_colors) +
+  geom_hline(aes(yintercept = mean_est), linetype = "dashed") +
+  facet_wrap(~variable, scales = "free")
+
+
+
+#######
+# CI width and selection logic
+SpATsBLUE_overall[, `:=`(
+  ci_width = 2 * standard.errors,
+  Selection = fifelse(Genotype_name == "CH90137", "CH90137",
+                      fifelse(Genotype_name == "Opaline", "Opaline",
+                              fifelse(Genotype_name == "Gallec", "Gallec", "Other")))
+)]
+
+# Ordering based on CI width
+SpATsBLUE_overall[, temp_order_ci := .I, by = variable]
+SpATsBLUE_overall[, Genotype_ordered_ci := factor(temp_order_ci,
+                                                  levels = .SD[order(ci_width)]$temp_order_ci),
+                  by = variable]
+
+# Mean CI width per variable
+SpATsBLUE_overall[, mean_ci_width := mean(ci_width, na.rm = TRUE), by = variable]
+
+# Plot
+ggplot(SpATsBLUE_overall, aes(x = Genotype_ordered_ci, y = ci_width, color = Selection)) +
+  xlab("Genotype (ordered by CI width)") + ylab("CI Width") +
+  theme_bw() +
+  theme(
+    legend.position = "top",
+    strip.background = element_blank(),
+    panel.grid = element_blank(),
+    panel.border = element_rect(colour = "black", fill = NA),
+    axis.text.x = element_blank(),
+    text = element_text(size = 8)
+  ) +
+  geom_point(size = 0.5) +
+  geom_point(data = SpATsBLUE_overall[Genotype_name %in% c("CH90137", "Opaline", "Gallec")], size = 2) +
+  scale_color_manual(values = custom_colors) +
+  geom_hline(aes(yintercept = mean_ci_width), linetype = "dashed") +
+  facet_wrap(~variable, scales = "free")
+
+#######
+
+
+
+
+
+
+p <- SpATsBLUE_overall_CC
+p$estimate <- p$predicted.values
+p$StdError <- p$standard.errors
+p$standard.errors <- NULL
+p$predicted.values <- NULL
+p$Model <- as.character(p$Date)
+p$Date <- NULL
+coefs_CC <- rbind(coefs, p, fill=T)
+
+yield_coefs <- merge(SpATsBLUE_overall,coefs_CC, by="genotype.id",allow.cartesian=TRUE)
 # yield_coefs <- merge(SpATsBLUE_overall,SpATsBLUE_overall_CC, by="genotype.id",allow.cartesian=TRUE)
 
 yield_coefs <- setDT(yield_coefs)
 yield_coefs$variable_measured <- yield_coefs$variable.x
 yield_coefs$variable_fitted <- yield_coefs$variable.y
 # yield_coefs[,estimate:=remove_outliers(estimate, 2.5),by=.(variable_measured,variable_fitted)]
-# yield_coefs$variable_fitted[yield_coefs$Model=="Model3"] <- paste0(yield_coefs$variable_fitted[yield_coefs$Model=="Model3"] ,"Mod3")
 
 yield_coefs_wide <- dcast.data.table(subset(yield_coefs, Model%in%c("Model0","Model10")), genotype.id+variable_measured+value~variable_fitted, value.var = "estimate")
 yield_coefs_wide <- subset(yield_coefs_wide, variable_measured=="Protein.yield")
@@ -497,12 +628,16 @@ vif(lm01)
 # anova(lm0,lm1)
 # anova(lm00,lm01)
 
-p <- yield_coefs
-p$dataset <- p$Model
+# p_env <- p_Growth[,list(N_env=length(unique(year_site.UID))),by=genotype.id]
+p <- subset(yield_coefs)#, genotype.id%in%p_env$genotype.id[p_env$N_env>1])
+p$dataset <- "1 env"
+# p$dataset[p$genotype.id%in%p_env$genotype.id[p_env$N_env>1]] <- ">1 env"
+
+
 p <- p[!is.na(value),]
 p <- p[!is.na(estimate),]
 r2 <- subset(p)
-r2 <- setDT(r2)[, list(r=cor(value, estimate),p_cor= cor.test(value, estimate)$p.value, N=nrow(.SD), xx=min((value),yy=min(estimate),na.rm = T), yy=max(estimate,na.rm = T)), by=.(variable.y,variable.x,dataset)]
+r2 <- setDT(r2)[, list(r=cor(value, estimate),p_cor= cor.test(value, estimate)$p.value, N=nrow(.SD), xx=min((value),yy=min(estimate),na.rm = T), yy=max(estimate,na.rm = T)), by=.(variable.y,variable.x,dataset,Model)]
 r2$Significance <- ""
 r2$Significance[r2$p_cor<0.1] <- "."
 r2$Significance[r2$p_cor<0.05] <- "*"
@@ -510,22 +645,22 @@ r2$Significance[r2$p_cor<0.01] <- "**"
 r2$Significance[r2$p_cor<0.001] <- "***"
 
 r2$r <- paste("r=",round(r2$r,digits=2),r2$Significance )
-r2 <- setDT(r2)[, xx:=min((xx),na.rm = T), by=.(variable.y,variable.x,dataset)]
-r2 <- setDT(r2)[, yy:=min((yy),na.rm = T), by=.(variable.y,variable.x,dataset)]
+r2 <- setDT(r2)[, xx:=min((xx),na.rm = T), by=.(variable.y,variable.x,dataset,Model)]
+r2 <- setDT(r2)[, yy:=min((yy),na.rm = T), by=.(variable.y,variable.x,dataset,Model)]
 
-p <- merge(p,r2, by=c("variable.x","variable.y","dataset"))
+p <- merge(p,r2, by=c("variable.x","variable.y","dataset","Model"))
 
 ggplot(data=p, aes(y=estimate,x=value)) + #ylab(expression("F"["q"]*"'"/"F"["m"]*"'"))+xlab(expression("Biomass [mg/pot and kg/ha]"))+
   theme_bw()+theme(panel.spacing.x = unit(-0.2, "lines"),plot.title=element_text(hjust=-0.2), strip.placement = "outside",strip.background = element_blank(),legend.key.size = unit(0.6, "lines"),legend.title=element_blank(), legend.position="none",panel.border = element_rect(colour = "black", fill=NA, size=1), panel.grid.minor = element_blank(),panel.grid.major = element_blank(),axis.text.x = element_text(angle = 0, hjust = 0.5),text = element_text(size=11))+
   # geom_errorbar(aes(ymin=estimate-SE_trend, ymax=estimate+SE_trend),color="grey90",width=0.000001)  +
   # geom_errorbarh(aes(xmin=value.1-SD_Biomass, xmax=value.1+SD_Biomass),height=0.000001,color="grey90")+
-  geom_point(aes(y=estimate,x=value,color=value, fill=estimate),size=1.75, alpha=1)+
+  geom_point(aes(y=estimate,x=value,color=value, fill=estimate, shape=dataset),size=1.75, alpha=1)+
   scale_color_gradientn(colours = c("yellow3","darkblue") )+
   scale_y_continuous(labels = function(x) format(x, scientific = TRUE))+
   # scale_shape_manual(values = c(19,2,4,15,12,6))+
   guides(shape = guide_legend(override.aes = list(size=2)),color = guide_legend(override.aes = list(size=2)))+
   geom_smooth(method="lm",formula = y ~ x, aes(group=1), fill=NA,  alpha=1, show.legend = F)+
-  facet_grid(variable_fitted+Period+Model~variable_measured, scales = "free", labeller = label_parsed,switch = "both")+
+  facet_grid(Period+variable_fitted+Model~variable_measured, scales = "free", labeller = label_parsed,switch = "both")+
   # geom_vline(aes(xintercept = Quantile),linetype="dashed")+  # geom_boxplot(outlier.colour = "grey")+#stat_boxplot(geom = "errorbar", width = 0.2)+
   # geom_text_repel(aes(label = Label), color='grey3',  size=2.5, box.padding = 1 )+
   geom_text(size=8/ (14/5), color="black", show.legend = F, aes(x=xx, y=Inf,label=r ,vjust=1.2, hjust=0), check_overlap = T)
@@ -534,16 +669,20 @@ ggplot(data=p, aes(y=estimate,x=value)) + #ylab(expression("F"["q"]*"'"/"F"["m"]
 p <- subset(p, Model%in%c("Model0","Model10")&variable_measured%in%c("Protein.yield","End.of.maturity"))
 p$variable_measured <- gsub("Protein.yield","Protein yield (t/ha)",p$variable_measured)
 p$variable_measured <- gsub("End.of.maturity","Maturity (d)",p$variable_measured)
+p$variable_measured <- gsub("Yield","Yield (t/ha)",p$variable_measured)
+
 # p$Model <- gsub("Model13","Model3",p$Model)
 
 # p$Model <- as.factor(p$Model)
 # p$Model <- factor(p$Model, levels = levels(p$Model)[2:1])
-p$value[p$variable_measured=="Protein.yield"] <- p$value[p$variable_measured=="Protein.yield"]/100 
-p$variable_fitted <- gsub("Interaction","Gen:",p$variable_fitted )
+p$variable_fitted <- gsub("Interaction","Scal.Gen:",p$variable_fitted )
+p$variable_fitted <- gsub(".Growth","",p$variable_fitted )
+p$variable_fitted <- gsub(".Senescence","",p$variable_fitted )
 
 p$variable_fitted <- as.factor(p$variable_fitted)
 p$variable_fitted <- factor(p$variable_fitted, levels = levels(p$variable_fitted)[c(1,3,5,2,4)])
 
+library(scales)
 
 ggBeanCoef <- ggplot(data=p, aes(x=estimate,y=value)) + ylab(expression("Reference trait"))+xlab("Model coefficient")+
   theme_bw()+theme(panel.spacing.x = unit(-0.2, "lines"),plot.title=element_text(hjust=-0.2), strip.placement = "outside",strip.background = element_blank(),
@@ -554,14 +693,15 @@ ggBeanCoef <- ggplot(data=p, aes(x=estimate,y=value)) + ylab(expression("Referen
   geom_errorbarh(aes(xmin=estimate-StdError, xmax=estimate+StdError),height=0.000001,color="grey90")+
   geom_point(aes(x=estimate,y=value,fill=estimate),size=1, alpha=0.75)+
   scale_color_gradientn(colours = c("yellow3","darkblue") )+
-  # scale_x_continuous(labels = function(x) format(x, scientific = TRUE))+
+  scale_x_continuous(breaks = pretty_breaks(n = 3))+
+# scale_x_continuous(labels = function(x) format(x, scientific = TRUE))+
   # scale_shape_manual(values = c(19,2,4,15,12,6))+
   guides(shape = guide_legend(override.aes = list(size=2)),color = guide_legend(override.aes = list(size=2)))+
   geom_smooth(method="lm",formula = y ~ x, aes(group=1),   alpha=0.5, show.legend = F, color="#661100")+
-  facet_grid(variable_measured~variable_fitted, scales = "free", switch = "both")+
+  facet_grid(variable_measured~Period+variable_fitted, scales = "free", switch = "both")+
   # geom_vline(aes(xintercept = Quantile),linetype="dashed")+  # geom_boxplot(outlier.colour = "grey")+#stat_boxplot(geom = "errorbar", width = 0.2)+
   # geom_text_repel(aes(label = Label), color='grey3',  size=2.5, box.padding = 1 )+
-  geom_text(size=8/ (14/5), color="black", show.legend = F, aes(x=yy, y=Inf,label=r ,vjust=1.2, hjust=1), check_overlap = T)
+  geom_text(size=6/ (14/5), color="black", show.legend = F, aes(x=xx, y=Inf,label=r ,vjust=1.5, hjust=0), check_overlap = T)
 
 ggBeanCoef
 
@@ -688,7 +828,7 @@ second_row <- plot_grid(ggDensityModel, ggBeanCoef, ncol = 2, rel_widths = c(0.4
 first_row <- plot_grid(ggGrowthCurves, second_row,  ncol = 1, rel_heights = c(1,0.45), labels = c("A",""))  #,vjust=0.5+
 
 
-# ggsave("GrowthFitCoef_Soybean.png", width = 180, height = 210, units = "mm", dpi = 100, first_row)
+# ggsave("GrowthFitCoef_Soybean.png", width = 180, height = 210, units = "mm", dpi = 300, first_row)
 # ggsave("GrowthFitCoef_Soybean.pdf", width = 180, height = 210, units = "mm", dpi = 100, first_row)
 
 

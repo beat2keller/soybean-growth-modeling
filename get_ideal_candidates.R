@@ -42,12 +42,16 @@ dynamic_vector <- append(dynamic_Asym, c(dynamic_xmid, dynamic_scal))
 # end_time <- Sys.time()
 # print(end_time - start_time)
 # 
-# save(Growth_E.GxPTxP_Contr.Sum, file=paste0("model/", Period, "6_E.GxPxPre_Contr.Sum.RData"))
+# save(Growth_E.GxPTxP_Contr.Sum, file=paste0("model/", Period, "_E.GxPTxP_Contr.Sum.RData"))
 
 # this runs for up to 2 hours, you can also load it in here:
 load("model/Growth_E.GxPTxP_Contr.Sum.RData")
 
-ci <- data.frame(lower= intervals(Growth_E.GxPTxP_Contr.Sum)$fixed[,1], est = intervals(Growth_E.GxPTxP_Contr.Sum)$fixed[,2], upper = intervals(Growth_E.GxPTxP_Contr.Sum)$fixed[,3])
+ci <- data.frame(
+  lower = intervals(Growth_E.GxPTxP_Contr.Sum, which = "fixed")$fixed[, 1],
+  est   = intervals(Growth_E.GxPTxP_Contr.Sum, which = "fixed")$fixed[, 2],
+  upper = intervals(Growth_E.GxPTxP_Contr.Sum, which = "fixed")$fixed[, 3]
+)
 ci$names <- rownames(ci)
 ci$interval <- ci$upper - ci$lower
 
@@ -108,14 +112,14 @@ colnames(genotype_selection) = c('genotype', 'prec_int','prec','rad_int','rad_in
 i =1
 for (i in 1:length(unique(df$genotype.id))) {
   genotype_selection[i, 1] = i
-  genotype_selection[i, 2] = ifelse(prec_intervals[i] < quantile(prec_intervals,0.75), 1,0)
-  genotype_selection[i, 3] = ifelse(rad_intervals[i] < quantile(rad_intervals,0.75), 1,0)
+  genotype_selection[i, 2] = ifelse(prec_intervals[i] < quantile(prec_intervals,0.5), 1,0)
+  genotype_selection[i, 3] = ifelse(rad_intervals[i] < quantile(rad_intervals,0.5), 1,0)
   # genotype_selection[i, 4] = ifelse(rad_intervals[i] < quantile(rad_intervals,0.75), 1,1) #  removed
   median(prec_main_effect+precs)
   precs_abs <- abs(prec_main_effect+precs)
-  genotype_selection[i, 4] = ifelse(precs_abs[i] < quantile(precs_abs,0.025), 1, 0)  # offset quantile(precs)[3]50%  0.4803419 
+  genotype_selection[i, 4] = ifelse(precs_abs[i] < quantile(precs_abs,0.1), 1, 0)  # offset quantile(precs)[3]50%  0.4803419 
   rad_abs <- abs(rad_main_effect+rad)
-  genotype_selection[i, 5] = ifelse(rad_abs[i] < quantile(rad_abs,0.025), 1, 0) # 
+  genotype_selection[i, 5] = ifelse(rad_abs[i] < quantile(rad_abs,0.1), 1, 0) # 
   # genotype_selection[i, 7] = ifelse(rad_abs[i] < quantile(rad_abs,0.15), 1, 1) #  removed
   # genotype_selection[i, 8] = ifelse(rad_abs[i] < quantile(rad_abs,0.25), 1, 1) #  removed
   # genotype_selection[i, 9] = ifelse(asym_intervals[i] < quantile(asym_intervals,0.25), 1, 1) #  removed
@@ -157,7 +161,11 @@ df$genotype.id <- relevel(df$genotype.id, ref= as.character(unique(df$genotype.i
 # this runs for up to 20 mins, you can also load it in here:
 load("model/Growth_E.GxPTxP.RData")
 
-ci_baseline <- data.frame(lower= intervals(Growth_E.GxPTxP)$fixed[,1], est = intervals(Growth_E.GxPTxP)$fixed[,2], upper = intervals(Growth_E.GxPTxP)$fixed[,3])
+ci_baseline <- data.frame(
+  lower = intervals(Growth_E.GxPTxP, which = "fixed")$fixed[, 1],
+  est   = intervals(Growth_E.GxPTxP, which = "fixed")$fixed[, 2],
+  upper = intervals(Growth_E.GxPTxP, which = "fixed")$fixed[, 3]
+)
 ci_baseline$names <- rownames(ci_baseline)
 
 # calculating the genotype-specific asymptote
@@ -171,7 +179,7 @@ for (i in 2:length(unique(df$genotype.id))) {
 candidate_genotypes = c()
 for (i in 1:length(na.omit(candidates))) {
   asym_cand = asym[candidates[i]] + ci$est[1] + ci$est[grep("Asym.platform",rownames(ci))] ## candidate effect + intercept + platfrom
-  par_cand <- (ci_baseline$names[round(ci_baseline$Asym_est,5)  == round(asym_cand,5)])
+  par_cand <- (ci_baseline$names[round(ci_baseline$Asym_est,6)  == round(asym_cand,6)])
   par_cand <- par_cand[grepl("Asym",par_cand)]
   candidate <- gsub("\\D", "", par_cand)
   if(length(candidate)==0){candidate <- "10001"} # fix me
@@ -186,6 +194,7 @@ write.csv(data.frame(candidate_genotypes),
 
 # This way, you obtain a list of ideal candidates
 # our ideal candidates are: 
+candidate_genotypes <- as.character(read.csv("model/candidates/candidate_genotypes.csv")[,1])
 candidate_genotypes
 
 # Next, we refit the model with each of those candidates as reference, so we get the
@@ -211,7 +220,7 @@ colnames(overview_df) = c("Genotype",	"Scale_low",	"Scale_est",	"Scale_up",	"Sca
 
 # again, you can skip this by loading in directly the models from the repo (see below)
 i = 1
-for (id in candidate_genotypes[1]) {
+for (id in candidate_genotypes) {
   
   df$genotype.id <- relevel(df$genotype.id,ref= id)
   levels(df$genotype.id)[1]
@@ -235,9 +244,14 @@ for (id in candidate_genotypes[1]) {
   # probably not even needed: model_candidates = paste("models/candidates/", id, "_model.RData", sep="")
   # model_candidates <- get(paste(id, "_model", sep=""))
   
-  ci <- data.frame(lower= intervals(model_candidates)$fixed[,1], est = intervals(model_candidates)$fixed[,2], upper = intervals(model_candidates)$fixed[,3])
+  ci <- data.frame(
+    lower = intervals(model_candidates, which = "fixed")$fixed[, 1],
+    est   = intervals(model_candidates, which = "fixed")$fixed[, 2],
+    upper = intervals(model_candidates, which = "fixed")$fixed[, 3]
+  )
   ci$names <- rownames(ci)
   ci$interval <- ci$upper - ci$lower
+  
 
   overview_df$Genotype[i] = id
   # overview_df$Scale_low[i] = ci["scal.(Intercept)","lower"]
@@ -284,7 +298,7 @@ dt$variable <- NULL
 dt_cats <- dcast(dt, ...~Level)
 
 load("model/Growth_E.GxPTxP.RData")
-overview_all_df = intervals(Growth_E.GxPTxP)$fixed
+overview_all_df = intervals(Growth_E.GxPTxP,which = "fixed")$fixed
   
 add_gen_id <- read.csv("data/ids_soybean_cleaned.csv")
 add_gen_id <- add_gen_id[,c("id","name")]
@@ -345,9 +359,11 @@ overview_all_df$variable[overview_all_df$Scale=="Asym"] <- "Asym"
 overview_all_df$variable[overview_all_df$Interaction=="avg_photothermal_14"] <- "G:P"
 overview_all_df$variable[overview_all_df$Interaction=="avg_precipitation_14"] <- "G:Pre"
 
-p <- subset(overview_all_df,Scale!="Intercept")
-
+p <- subset(overview_all_df,Scale!="Intercept"&Scale!="Asym")
+unique(subset(p, genotype.id%in%candidate_genotypes)$Genotype)
 p[,mean_est:=mean(est.),by=variable]
+levels(as.factor(p$Selection))
+
 # 
 ggIdeal_coef <- ggplot(p, aes(x = Genotype, y = est., color = Selection)) +xlab("Breeding line")+ylab("Coefficient")+
   geom_point(size =0.5 ) +
@@ -355,7 +371,7 @@ ggIdeal_coef <- ggplot(p, aes(x = Genotype, y = est., color = Selection)) +xlab(
   geom_point(data=subset(p, genotype.id%in%candidate_genotypes),size =1.5 )+ 
   geom_errorbar(data=subset(p, genotype.id%in%candidate_genotypes),aes(ymin = lower, ymax = upper), width = 0.2, position = position_dodge(width = 0.5), color="black") +  # Add error bars
   theme_bw()+theme(plot.title=element_text(hjust=-0.2),strip.placement = "outside", panel.spacing.x = unit(-0.2, "lines"), strip.background = element_blank(),legend.title = element_blank(),legend.key.height=unit(0.5,"line"),legend.key.size = unit(1, "lines"), legend.position="none",panel.border = element_rect(colour = "black", fill=NA, size=1), panel.grid.minor = element_blank(),panel.grid.major = element_blank(),axis.text.x = element_blank(),text = element_text(size=8),axis.title.y = element_blank())+
-  scale_color_manual(values =c(tol12qualitative[c(2,10,11)],"grey"))+
+  scale_color_manual(values =c(tol12qualitative[c(4,7,1,10)],"grey"))+
   geom_hline(aes(yintercept=mean_est),linetype="dashed")+
   facet_grid(variable~.,scales = "free",switch="both")
 

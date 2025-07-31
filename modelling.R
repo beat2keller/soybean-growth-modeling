@@ -13,7 +13,9 @@ library(data.table)
 # data "plot_grouped_global" is used for the grouping of the data
 df = read.csv("data/model_data.csv")
 df <- subset(df, period%in%c(Period,"Both"))
-
+# if(Period=="Senescence"){
+#   df <- rbind(subset(df, period%in%c(Period,"Both")), subset(df, value>0.9))
+# }
 
 unique(df$date)
 # setDT(df)[,length(unique(platform)),by="year_site.UID"]
@@ -37,11 +39,8 @@ df <- df[!is.na(df$value),]
 setDT(df)[,N:=nrow(.SD),by=UID]
 # setDT(df)[,length(unique(genotype.id)),by=year_site.UID]
 
-if(Period=="Growth"){
-df <- subset(df, N>5)}
-
+df <- subset(df, N>4) 
 if(Period=="Senescence"){
-  df <- subset(df, N>1)
   df$time_since_sowing <- df$time_since_sowing* (-1)
 }
 
@@ -49,11 +48,11 @@ p <- subset(df, genotype.id%in%unique(genotype.id)[1:10])
 ggplot(data=p, aes(date, value))+ ylab("Canopy cover (%)")+
   theme_bw()+theme(strip.placement = "outside",axis.title.x = element_blank(), strip.background = element_blank(),legend.key.size = unit(0.9, "lines"), legend.position="none",panel.border = element_rect(colour = "black", fill=NA, size=1), panel.grid.minor = element_blank(),panel.grid.major = element_blank(),axis.text.x = element_text(angle = 0, hjust = 0.5),text = element_text(size=9))+
   # geom_errorbar(aes(ymin=value-SD, ymax=value+SD),color="grey",width=0.001)  +
-  geom_point(size=1.5, alpha=1,aes(color=genotype.id))+
+  geom_point(size=1.5, alpha=1,aes(color=genotype.id, shape=platform))+
   # geom_line(aes(y=Loess_fit, x=Date))+
   geom_smooth(method="loess",formula = y ~x,  alpha=0.25, show.legend = F, aes(group=1),color="black")+
   # guides(color = guide_legend(nrow=3))+
-  facet_grid(genotype.id~Location+year+platform,scale="free",switch="both", labeller = label_parsed)
+  facet_grid(genotype.id~Location+year,scale="free",switch="both", labeller = label_parsed)
 
 
 # 
@@ -151,9 +150,7 @@ for (ii in 1:length(outlier_plots)) {
 df <- subset(df, !plot_grouped_global %in%outlier_plots)
 setDT(df)[,length(genotype.id[!duplicated(genotype.id)])]
 setDT(df)[,N:=nrow(.SD),by=genotype.id]
-df <- subset(df, N>10)
-if(Period=="Senescence"){
-  df <- subset(df, N>20)}
+df <- subset(df, N>25)
 df <- droplevels(df)
 setDT(df)[,length(genotype.id[!duplicated(genotype.id)])]
 df <- as.data.frame(df)
@@ -170,13 +167,15 @@ summary(cc_rf_scal)
 # vectors for starting values
 soyFix <- fixef(cc_rf_scal)
 
+df$platform <- as.factor(df$platform)
+unique(df$year_site.UID)[order(unique(df$year_site.UID))]
+length(unique(df$year_site.UID))
 ##
-# save.image(paste0("data/",Period,"_data.RData") )
+save.image(paste0("data/",Period,"_data.RData") )
 ###
 ###
 require(nlme)
 
-df$platform <- as.factor(df$platform)
 
 
 
@@ -229,8 +228,8 @@ Growth1_G <- update(cc_rf_scal,
                                  xmid ~ 1 ,
                                  scal ~ genotype.id+platform),
                     start = dynamic_vector, control = list (msVerbose = TRUE,
-                                                            maxIter = 100,
-                                                            msMaxIter = 100))
+                                                            maxIter = 500,
+                                                            msMaxIter = 500))
 end_time <- Sys.time()
 print(end_time - start_time)
 

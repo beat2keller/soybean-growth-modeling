@@ -11,11 +11,11 @@ library(nlme)
 soybean_data = fread("data/soybean_data_for_modelling.csv")
 candidate_genotypes <- read.csv("model/candidates/candidate_genotypes.csv", 
                  colClasses = "character",
-                 header = TRUE)
+                 header = TRUE)[,1]
 
 #
 weathter_data_modelling = fread("data/weather_data_for_modelling.csv")
-weathter_data <- melt.data.table(weathter_data_modelling, id.vars=c("WeatherVariable","Location","Date","Year","Measure_7","Measure_14","Measure_28","Measure_56"),measure.vars = c("CumulativeDailyMean"),variable.name = "WeatherCalcVar",value.name="WeatherValue") ##,"SDoverTimeDailyMean"
+weathter_data <- melt.data.table(weathter_data_modelling, id.vars=c("WeatherVariable","Location","Date","Year","Measure_7","Measure_14","Measure_21"),measure.vars = c("CumulativeDailyMean"),variable.name = "WeatherCalcVar",value.name="WeatherValue") ##,"SDoverTimeDailyMean"
 # remove NA
 weathter_data <- weathter_data[!is.na(weathter_data$WeatherValue),]
 
@@ -63,7 +63,7 @@ coefs_max_abs <- coefs_abs[grepl("Interaction",coefs_abs$variable),list(max=max(
 selected_genotype <- c(coefs_max_abs$max_genotype,coefs_max_abs$min_genotype)
 selected_genotype_prec <- coefs_max_abs[grepl("InteractionPrec",coefs_max_abs$variable)]
 selected_genotype_prec <- c(selected_genotype_prec$max_genotype,selected_genotype_prec$min_genotype)
-
+selected_genotype_prec <- selected_genotype_prec[1] # 10024 has coef very close to zero
 
 library(data.table)
 
@@ -95,7 +95,7 @@ weathter_data_sub <- weathter_data_sub[order(weathter_data_sub$WeatherVariable,w
 weathter_data_sub[, time_since_sowing:=1:nrow(.SD),by=.(WeatherVariable,Location,Year)]
 
 
-weather_scenario_mean <- weathter_data_sub[,list(Measure_7=mean(Measure_7),Measure_14=mean(Measure_14), Measure_28=mean(Measure_28), Measure_56=mean(Measure_56), WeatherValue=mean(WeatherValue)),by=.(WeatherVariable,time_since_sowing,WeatherCalcVar)]
+weather_scenario_mean <- weathter_data_sub[,list(Measure_7=mean(Measure_7),Measure_14=mean(Measure_14), Measure_21=mean(Measure_21), WeatherValue=mean(WeatherValue)),by=.(WeatherVariable,time_since_sowing,WeatherCalcVar)]
 weather_scenario_mean$scenario <- "Average"
 weather_scenario_mean$Location <- "Across"
 weather_scenario_mean$Date <- NA
@@ -118,16 +118,16 @@ weather_scenario_coldest <- weather_scenario_mean
 weather_scenario_coldest$Measure_14[weather_scenario_coldest$WeatherVariable=="PhotothermalProd"] <- scenario_coldest$Measure_14[scenario_coldest$WeatherVariable=="PhotothermalProd"]
 weather_scenario_coldest$scenario <- "Cold"
 
-scenario_coldest  <- subset(weathter_data_sub, Location=="Eschikon"&Year=="2016") # make senes
+scenario_rainy  <- subset(weathter_data_sub, Location=="Eschikon"&Year=="2016") # 2021 second rainiest. Eschikon 2016 rained the most.
 weather_scenario_rainy <- weather_scenario_mean
-weather_scenario_rainy$Measure_14[weather_scenario_rainy$WeatherVariable=="PrecipitationCap"] <- scenario_coldest$Measure_14[scenario_coldest$WeatherVariable=="PrecipitationCap"]
-weather_scenario_rainy$Measure_28[weather_scenario_rainy$WeatherVariable=="PrecipitationCap"] <- scenario_coldest$Measure_28[scenario_coldest$WeatherVariable=="PrecipitationCap"]
+# weather_scenario_rainy$Measure_14[weather_scenario_rainy$WeatherVariable=="PrecipitationCap"] <- scenario_rainy$Measure_14[scenario_rainy$WeatherVariable=="PrecipitationCap"]
+weather_scenario_rainy$Measure_14[weather_scenario_rainy$WeatherVariable=="PrecipitationCap"] <- scenario_rainy$Measure_21[scenario_rainy$WeatherVariable=="PrecipitationCap"]/21*14 # smooth weather data little
 weather_scenario_rainy$scenario <- "Rainy"
 
-scenario_dry <- subset(weathter_data_sub, Location=="Delley"&Year=="2022") # make senes
+scenario_dry <- subset(weathter_data_sub, Location=="Delley"&Year=="2022") # make sense
 weather_scenario_dry <- weather_scenario_mean
 weather_scenario_dry$Measure_14[weather_scenario_dry$WeatherVariable=="PrecipitationCap"] <- scenario_dry$Measure_14[scenario_dry$WeatherVariable=="PrecipitationCap"]
-weather_scenario_dry$Measure_28[weather_scenario_dry$WeatherVariable=="PrecipitationCap"] <- scenario_dry$Measure_28[scenario_dry$WeatherVariable=="PrecipitationCap"]
+weather_scenario_dry$Measure_21[weather_scenario_dry$WeatherVariable=="PrecipitationCap"] <- scenario_dry$Measure_21[scenario_dry$WeatherVariable=="PrecipitationCap"]
 weather_scenario_dry$scenario <- "Dry"
 
 
@@ -158,7 +158,7 @@ new_soybean$Date <- NULL
 WeatherDataToPreodict <- merge.data.table(new_soybean, weathter_data_scenarios, by=c("time_since_sowing"), all.x = T, all.y = F, allow.cartesian=TRUE)
 # WeatherDataToPreodict <- WeatherDataToPreodict[order(WeatherDataToPreodict$Date),]
 
-WeatherDataToPreodict_cast <- dcast.data.table(WeatherDataToPreodict, scenario+time_since_sowing+genotype.id+platform~WeatherVariable, value.var=c("Measure_7","Measure_14","Measure_56","Measure_28")) # ~WeatherVariable+WeatherCalcVar
+WeatherDataToPreodict_cast <- dcast.data.table(WeatherDataToPreodict, scenario+time_since_sowing+genotype.id+platform~WeatherVariable, value.var=c("Measure_7","Measure_14","Measure_21")) # ~WeatherVariable+WeatherCalcVar
 
 
 model_df = data.frame(matrix(nrow=nrow(WeatherDataToPreodict_cast), ncol=0))
@@ -251,7 +251,8 @@ p <- rbind(p,p1,p2)
 
 p$GxE <- "stable"
 p$GxE[p$genotype.id%in%coefs_max_abs$max_genotype] <- "unstable"
-
+# p$GxE[p$genotype.id%in%coefs_max_abs$min_genotype] <- "unstable"
+p <- subset(p, !genotype.id%in%coefs_max_abs$min_genotype[1]) ## fix me
 
 p <- subset(p, !(Scenario == "Extrem environment: Photothermal product" & scenario %in% c("Rainy", "Dry")))
 p <- subset(p, !(Scenario == "Extrem environment: Precipitation" & scenario %in% c("Cold", "Warm", "Hot (scenario)")))
@@ -287,7 +288,7 @@ ggFit
 
 
 
-p <- melt.data.table(model_df, measure.vars = c( "avg_precipitation_28", "avg_photothermal_14"),variable.name = "Weather")
+p <- melt.data.table(model_df, measure.vars = c( "avg_precipitation_14", "avg_photothermal_14"),variable.name = "Weather")
 p$value <- p$value/14
 p$value[p$Weather=="avg_precipitation_28"] <- p$value[p$Weather=="avg_precipitation_28"]/2
 
@@ -340,7 +341,7 @@ tol12qualitative=c("#332288", "#6699CC", "#88CCEE", "#44AA99", "#117733", "#9999
 
 
 load("model/Growth_E.GxPTxP.RData")
-overview_all_df = intervals(Growth_E.GxPTxP)$fixed
+overview_all_df = intervals(Growth_E.GxPTxP,which = "fixed")$fixed
 
 
 ######
