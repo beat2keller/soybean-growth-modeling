@@ -120,6 +120,7 @@ for (i in 1:length(unique(df$genotype.id))) {
   genotype_selection[i, 4] = ifelse(precs_abs[i] < quantile(precs_abs,0.1), 1, 0)  # offset quantile(precs)[3]50%  0.4803419 
   rad_abs <- abs(rad_main_effect+rad)
   genotype_selection[i, 5] = ifelse(rad_abs[i] < quantile(rad_abs,0.1), 1, 0) # 
+  genotype_selection[i, 6] = ifelse(asym[i] > quantile(asym,0.75), 1, 0) 
   # genotype_selection[i, 7] = ifelse(rad_abs[i] < quantile(rad_abs,0.15), 1, 1) #  removed
   # genotype_selection[i, 8] = ifelse(rad_abs[i] < quantile(rad_abs,0.25), 1, 1) #  removed
   # genotype_selection[i, 9] = ifelse(asym_intervals[i] < quantile(asym_intervals,0.25), 1, 1) #  removed
@@ -129,7 +130,7 @@ for (i in 1:length(unique(df$genotype.id))) {
 }
 
 
-genotype_selection$sum = rowSums(genotype_selection[, c(2:5)]) 
+genotype_selection$sum = rowSums(genotype_selection[, c(2:6)]) 
 max(genotype_selection$sum,na.rm = T)
 candidates = genotype_selection$genotype[genotype_selection$sum > (max(genotype_selection$sum,na.rm = T)-1)] # get the genotypes fulfilling more than ... criteria
 candidates <- candidates[!is.na(candidates)]
@@ -284,6 +285,7 @@ tol12qualitative=c("#332288", "#6699CC", "#88CCEE", "#44AA99", "#117733", "#9999
 
 # this overview dataframe contains all the information of interest
 # it is summarized in the report pdf
+candidate_genotypes <- as.character(read.csv("model/candidates/candidate_genotypes.csv")[,1])
 candidate_genotypes
 
 
@@ -359,7 +361,7 @@ overview_all_df$variable[overview_all_df$Scale=="Asym"] <- "Asym"
 overview_all_df$variable[overview_all_df$Interaction=="avg_photothermal_14"] <- "G:P"
 overview_all_df$variable[overview_all_df$Interaction=="avg_precipitation_14"] <- "G:Pre"
 
-p <- subset(overview_all_df,Scale!="Intercept"&Scale!="Asym")
+p <- subset(overview_all_df,Scale!="Intercept")
 unique(subset(p, genotype.id%in%candidate_genotypes)$Genotype)
 p[,mean_est:=mean(est.),by=variable]
 levels(as.factor(p$Selection))
@@ -371,7 +373,7 @@ ggIdeal_coef <- ggplot(p, aes(x = Genotype, y = est., color = Selection)) +xlab(
   geom_point(data=subset(p, genotype.id%in%candidate_genotypes),size =1.5 )+ 
   geom_errorbar(data=subset(p, genotype.id%in%candidate_genotypes),aes(ymin = lower, ymax = upper), width = 0.2, position = position_dodge(width = 0.5), color="black") +  # Add error bars
   theme_bw()+theme(plot.title=element_text(hjust=-0.2),strip.placement = "outside", panel.spacing.x = unit(-0.2, "lines"), strip.background = element_blank(),legend.title = element_blank(),legend.key.height=unit(0.5,"line"),legend.key.size = unit(1, "lines"), legend.position="none",panel.border = element_rect(colour = "black", fill=NA, size=1), panel.grid.minor = element_blank(),panel.grid.major = element_blank(),axis.text.x = element_blank(),text = element_text(size=8),axis.title.y = element_blank())+
-  scale_color_manual(values =c(tol12qualitative[c(4,7,1,10)],"grey"))+
+  scale_color_manual(values =c(tol12qualitative[c(5,7,10)],"grey"))+
   geom_hline(aes(yintercept=mean_est),linetype="dashed")+
   facet_grid(variable~.,scales = "free",switch="both")
 

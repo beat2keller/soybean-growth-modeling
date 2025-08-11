@@ -6,20 +6,20 @@ tol3qualitative <- c("#4477AA", "#DDCC77", "#CC6677")
 tol2qualitative <- c("#4477AA", "#CC6677")
 
 # Load models
-load("model/Growth0_G.RData")
-Model0 <- Growth0_G
+load("model/Growth1_G.RData")
+Model1 <- Growth1_G
 
-load("model/Growth3_E.GxP.RData")
-Model3 <- Growth3_E.GxP
+load("model/Growth3_E.GxPT.RData")
+Model3 <- Growth3_E.GxPT
 
-load("model/Growth6_E.GxPxPre.RData")
-Model6 <- Growth6_E.GxPxPre
+load("model/Growth_E.GxPTxP.RData")
+Model6 <- Growth_E.GxPTxP
 
-load("model/Senescence0_G.RData")
-Model10 <- Senescence0_G
+load("model/Senescence1_G.RData")
+Model10 <- Senescence1_G
 
-load("model/Senescence3_E.GxP.RData") 
-Model13 <- Senescence3_E.GxP
+load("model/Senescence_E.GxPT.RData") 
+Model13 <- Senescence_E.GxPT
 
 
 # Revert transformation function
@@ -30,11 +30,11 @@ revert_transformation <- Vectorize(function(x) {
 generate_diagnostic_plots <- function(models, title) {
   # Define a fixed color mapping for models
   model_colors <- c(
-    "Growth0_G" = "#332288",  # Dark Blue
-    "Growth3_E.GxP" = "#88CCEE",  # Light Blue
-    "Growth6_E.GxPxPre" = "#117733",  # Green
-    "Senescence0_G" = "#DDCC77",  # Yellow
-    "Senescence3_E.GxP" = "#CC6677"  # Red
+    "Growth1_G" = "#332288",  # Dark Blue
+    "Growth3_E.GxPT" = "#88CCEE",  # Light Blue
+    "Growth_E.GxPTxP" = "#117733",  # Green
+    "Senescence1_G" = "#DDCC77",  # Yellow
+    "Senescence_E.GxPT" = "#CC6677"  # Red
   )
   
   # Filter out missing models
@@ -125,17 +125,17 @@ generate_diagnostic_plots <- function(models, title) {
 
 plot_A <- generate_diagnostic_plots(
   list(
-    Growth0_G = Model0, 
-    Growth3_E.GxP = Model3, 
-    Growth6_E.GxPxPre = Model6
+    Growth1_G = Model1, 
+    Growth3_E.GxPT = Model3, 
+    Growth_E.GxPTxP = Model6
   ), 
   "A: Diagnostics for Growth0_G, Growth3_E.GxP, Growth6_E.GxPxPre"
 )
 
 plot_B <- generate_diagnostic_plots(
   list(
-    Senescence0_G = Model10, 
-    Senescence3_E.GxP = Model13
+    Senescence1_G = Model10, 
+    Senescence_E.GxPT = Model13
   ), 
   "B: Diagnostics for Senescence0_G, Senescence3_E.GxP"
 )

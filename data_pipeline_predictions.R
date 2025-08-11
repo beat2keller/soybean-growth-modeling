@@ -60,7 +60,7 @@ coefs_abs <- coefs
 coefs_abs$coefs <- abs(coefs_abs$coefs)
 coefs_max_abs <- coefs_abs[grepl("Interaction",coefs_abs$variable),list(max=max(coefs),max_genotype=genotype.id[coefs==max(coefs)],min=min(coefs),min_genotype=genotype.id[coefs==min(coefs)]),by=.(variable,Model)]
 
-selected_genotype <- c(coefs_max_abs$max_genotype,coefs_max_abs$min_genotype)
+selected_genotype <- c(coefs_max_abs$max_genotype) #coefs_max_abs$min_genotype
 selected_genotype_prec <- coefs_max_abs[grepl("InteractionPrec",coefs_max_abs$variable)]
 selected_genotype_prec <- c(selected_genotype_prec$max_genotype,selected_genotype_prec$min_genotype)
 selected_genotype_prec <- selected_genotype_prec[1] # 10024 has coef very close to zero
@@ -277,7 +277,7 @@ ggFit <- ggplot(data = p, aes(time_since_sowing, Fit, color = Genotype, shape = 
   ) +
   # geom_ribbon(aes(ymin = CI_lower, ymax = CI_upper, fill = genotype.id), alpha = 0.2, color = NA) +  # Add CI
   geom_point(size = 2, alpha = 1) +
-  scale_color_manual(name="Genotype",values = tol6qualitative) +
+  scale_color_manual(name="Genotype",values = c(tol12qualitative[c(5,6,7,8)],"grey")) +
   scale_shape_manual("Environment \n (Scenario)" ,values = c(16,17,4,5,15)) +
   geom_line(size = 0.5, alpha = 0.5, aes(linetype = GxE)) +
   ylim(c(0,1)) +
@@ -373,22 +373,24 @@ overview_all_df <- merge(overview_all_df, add_gen_id, by="genotype.id")
 overview_all_df$Selection[overview_all_df$genotype.id%in%select_geno] <- overview_all_df$Genotype[overview_all_df$genotype.id%in%select_geno]
 overview_all_df$variable <- overview_all_df$Scale
 overview_all_df$variable[overview_all_df$Scale=="Asym"] <- "Asym"
-overview_all_df$variable[overview_all_df$Interaction=="avg_photothermal_14"] <- "G:P"
-overview_all_df$variable[overview_all_df$Interaction=="avg_precipitation_14"] <- "G:Pre"
+overview_all_df$variable[overview_all_df$Interaction=="avg_photothermal_14"] <- "Scal.Gen:Phot"
+overview_all_df$variable[overview_all_df$Interaction=="avg_precipitation_14"] <- "Scal.Gen:Pre"
 
 p <- subset(overview_all_df,Scale!="Intercept")
-
+levels(as.factor(p$Selection))
 p[,mean_est:=mean(est.),by=variable]
+p <- subset(p,variable!="Asym")
+
 # 
 ggIdeal_coef <- ggplot(p, aes(x = Genotype, y = est., color = Selection)) +xlab("Genotype")+ylab("Coefficient")+
   theme_bw()+theme(plot.title=element_text(hjust=-0.2),strip.placement = "outside", panel.spacing.x = unit(-0.2, "lines"),
       strip.background = element_blank(),legend.title = element_blank(),legend.key.height=unit(0.5,"line"),legend.key.size = unit(1, "lines"),
-      legend.position="none",panel.border = element_rect(colour = "black", fill=NA, size=1), panel.grid.minor = element_blank(),panel.grid.major = element_blank(),axis.text.x = element_blank(),text = element_text(size=8))+
+      legend.position="top",panel.border = element_rect(colour = "black", fill=NA, size=1), panel.grid.minor = element_blank(),panel.grid.major = element_blank(),axis.text.x = element_blank(),text = element_text(size=8))+
   geom_point(size =0.5 ) +
   geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2, position = position_dodge(width = 0.5), color="grey") +  # Add error bars
   geom_point(data=subset(p, genotype.id%in%select_geno),size =2 )+ 
   geom_errorbar(data=subset(p, genotype.id%in%select_geno),aes(ymin = lower, ymax = upper), width = 0.2, position = position_dodge(width = 0.5), color="black") +  # Add error bars
-  scale_color_manual(values =c(tol6qualitative,"grey"))+
+  scale_color_manual(values =c(tol12qualitative[c(5,6,7,8,9)],"grey"))+
   geom_hline(aes(yintercept=mean_est),linetype="dashed")+
   facet_grid(variable~.,scales = "free",switch="both")
 
@@ -397,7 +399,7 @@ ggIdeal_coef
 
 require(cowplot)
 
-first_row <- plot_grid(ggFit, ggWeather, ggIdeal_coef,  ncol = 1, rel_heights = c(1.2,0.5,0.7), labels = c("AUTO"))  #,vjust=0.5+
+first_row <- plot_grid(ggIdeal_coef, ggFit, ggWeather,  ncol = 1, rel_heights = c(0.7,1.2,0.5), labels = c("AUTO"))  #,vjust=0.5+
 first_row
 
 # ggsave("Predictions_scenarios_soybean.pdf", width = 180, height = 220, units = "mm", dpi = 100, first_row)

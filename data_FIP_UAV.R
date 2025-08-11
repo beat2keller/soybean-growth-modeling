@@ -558,6 +558,28 @@ soybean[is.na(replication),
         replication := seq_len(.N), 
         by = .(plot.UID, Date, Run, year_site.UID, platform, Weed_removed)]
 
+library(data.table)
+
+dt <- as.data.table(soybean)
+# dt[, date_run := paste(Date, Run)]
+
+result <- dt[, .(
+  Plots = uniqueN(plot.UID),
+  Genotypes = uniqueN(genotype.id),
+  Platform = paste(unique(platform), collapse = ","),
+  Measurements = uniqueN(Date)
+), by = .(year_site.UID, location, Year)]
+result$Platform <- gsub("UAV,FIP","FIP,UAV",result$Platform)
+result$Trial <- 1:16
+names(result)[1:2] <- c("Year_Site.UID","Location")
+result
+
+library(xtable)
+latex_table <- xtable(result)
+print(latex_table, file = "soybean_summary_table.tex", include.rownames = FALSE)
+
+###
+
 p <- (setDT(soybean)[,nrow(.SD),by=.(plot.UID,Date,Run,year_site.UID,platform,Weed_removed)])
 subset(p,V1>1)
 
