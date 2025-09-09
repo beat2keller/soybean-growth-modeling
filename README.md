@@ -33,7 +33,11 @@ Non-linear modeling of soybean canopy cover across breeding lines and years, int
 ## Data
 
 ### Raw image data and training set creation (optional)
-Public example data for 2021, site SB015, camera RGB1 is available here:
+The full data set of raw images: 
+- data/
+  (https://doi.org/10.3929/ethz-b-000742401)
+  
+Example data for 2021 is available here:
 
 - `data/2021/SB015/RGB1` on GitLab  
   (https://gitlab.ethz.ch/crop_phenotyping/fip-soybean-canopycover)
