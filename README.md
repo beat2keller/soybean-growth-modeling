@@ -1,93 +1,135 @@
-# canopy cover stats lab
+# Soybean Growth Modeling
 
+Non-linear modeling of soybean canopy cover across breeding lines and years, integrating weather covariates to analyze G×E and make predictions for untested environments.
 
-
-## Getting started
-
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+## Repository structure
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.ethz.ch/marlob/canopy-cover-stats-lab.git
-git branch -M main
-git push -uf origin main
+.
+├── data/                     # Raw & processed data (see Data)
+├── functions/                # Reusable R helpers
+├── model/                    # Saved non-linear mixed model
+├── segmentation/             # (Optional) Python canopy/weed segmentation
+├── adjusted_means_ref_traits.R
+├── data_FIP_UAV.R
+├── data_pipeline_join_df.R
+├── data_pipeline_predictions.R
+├── data_pipeline_soybeans.R
+├── data_pipeline_weather.R
+├── diagnostics.R
+├── get_ideal_candidates.R
+├── modelling.R
+└── visualization.R
 ```
 
-## Integrate with your tools
+## What the pipeline does
 
-- [ ] [Set up project integrations](https://gitlab.ethz.ch/marlob/canopy-cover-stats-lab/-/settings/integrations)
+0) **Transformer-based segmention** of soybean and weeds for improved canopy cover extraction
+1) **Ingest & clean** weather and phenotyping data  
+2) **Join & feature-build** across site-year-plot  
+3) **Model** non-linear growth with G×E weather effects  
+4) **Predict** canopy trajectories (observed & new environments)  
+5) **Evaluate & visualize** fits and summarize candidates
 
-## Collaborate with your team
+## Requirements
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+### R (≥ 4.2 recommended)
 
-## Test and Deploy
+Install the packages your scripts call:
 
-Use the built-in continuous integration in GitLab.
+```r
+install.packages(c(
+  "data.table","nlme","ggplot2"
+))
+```
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+> If you prefer **base R**, the pipeline remains compatible—use base functions where tidyverse verbs appear.
 
-***
+### Python (only if using `segmentation/`)
 
-# Editing this README
+Create the environment **from the provided file**:
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+```bash
+# using conda or mamba
+conda env create -f segmentation/requirements.yml
+# then activate the environment name defined inside that file:
+conda activate <env-name-from-requirements.yml>
+```
 
-## Suggestions for a good README
+## Data
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+### Raw image data and training set creation (optional)
+Public example data for 2021, site SB015, camera RGB1 is available here:
 
-## Name
-Choose a self-explaining name for your project.
+- `data/2021/SB015/RGB1` on GitLab  
+  (https://gitlab.ethz.ch/crop_phenotyping/fip-soybean-canopycover)
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+Download those images into your preferred folder and point the segmentation scripts to that path.
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+```bash
+# 1) Identify rows and in-row space to generate labeled cut-out images of soybean and weeds, respectively for training
+Rscript identify_row_in-row_space_for_training.R
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+# 2) Combine UAV and FIP canopy cover data: create soybean_pixels_data.csv from scratch
+Rscript data_FIP_UAV.R
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+```
+## Segmentation (optional)
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+If you want to derive canopy/weed masks from created cut-out images:
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+```bash
+# 1) Create & activate env from the repo spec
+conda env create -f segmentation/requirements.yml
+conda activate <env-name-from-requirements.yml>
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+# 2) Train or run inference (examples; see scripts in ./segmentation)
+python segmentation/segement_transformer.py   --train and predict soybean and weed pixels
+```
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+Exported cover metrics can then be used by `data_pipeline_soybeans.R`.
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+## Quick start for non-linear mixed modeling
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+You can run these with `Rscript` from the repo root or source them in an R session.
 
-## License
-For open source projects, say how it is licensed.
+```bash
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+# 1) Weather: (optional) impute gaps, then standardize features
+Rscript Weather_imputation.R
+Rscript data_pipeline_weather.R
+
+# 2) Phenotypes: clean canopy cover / plot keys / dates
+Rscript data_pipeline_soybeans.R
+
+# 3) Join into a modeling table
+Rscript data_pipeline_join_df.R
+
+# 4) Fit non-linear + G×E models (saves model objects in ./model)
+Rscript modelling.R
+
+# 6) Predict in-sample and across environments
+Rscript data_pipeline_predictions.R
+
+# 7) Evaluation & figures
+Rscript diagnostics.R
+Rscript visualization.R
+
+# 8) Candidate selection
+Rscript get_ideal_candidates.R
+```
+
+### Running from an R session
+
+```r
+source("data_pipeline_weather.R")
+source("data_pipeline_soybeans.R")
+source("data_pipeline_join_df.R")
+source("modelling.R")
+source("data_pipeline_predictions.R")
+source("diagnostics.R")
+source("visualization.R")
+```
+
+
