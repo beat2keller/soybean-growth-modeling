@@ -6,11 +6,10 @@ Non-linear modeling of soybean canopy cover across breeding lines and years, int
 
 ```
 .
-├── data/                     # Raw & processed data (see Data)
+├── data/                     # Raw & processed data
 ├── functions/                # Reusable R helpers
 ├── model/                    # Saved non-linear mixed model
-├── segmentation/             # (Optional) Python canopy/weed segmentation
-├── adjusted_means_ref_traits.R
+├── segmentation/             # Rscript for labeled training set generation; Python for canopy/weed segmentation
 ├── data_FIP_UAV.R
 ├── data_pipeline_join_df.R
 ├── data_pipeline_predictions.R
@@ -24,37 +23,12 @@ Non-linear modeling of soybean canopy cover across breeding lines and years, int
 
 ## What the pipeline does
 
-0) **Transformer-based segmention** of soybean and weeds for improved canopy cover extraction
+0) **Transformer-based segmention** of soybean and weeds for improved canopy cover extraction (optional)
 1) **Ingest & clean** weather and phenotyping data  
 2) **Join & feature-build** across site-year-plot  
 3) **Model** non-linear growth with G×E weather effects  
 4) **Predict** canopy trajectories (observed & new environments)  
 5) **Evaluate & visualize** fits and summarize candidates
-
-## Requirements
-
-### R (≥ 4.2 recommended)
-
-Install the packages your scripts call:
-
-```r
-install.packages(c(
-  "data.table","nlme","ggplot2"
-))
-```
-
-> If you prefer **base R**, the pipeline remains compatible—use base functions where tidyverse verbs appear.
-
-### Python (only if using `segmentation/`)
-
-Create the environment **from the provided file**:
-
-```bash
-# using conda or mamba
-conda env create -f segmentation/requirements.yml
-# then activate the environment name defined inside that file:
-conda activate <env-name-from-requirements.yml>
-```
 
 ## Data
 
@@ -90,7 +64,7 @@ python segmentation/segement_transformer.py   --train and predict soybean and we
 Exported cover metrics can then be used by `data_pipeline_soybeans.R`.
 
 
-## Quick start for non-linear mixed modeling
+## Non-linear mixed modeling
 
 You can run these with `Rscript` from the repo root or source them in an R session.
 
@@ -120,16 +94,29 @@ Rscript visualization.R
 Rscript get_ideal_candidates.R
 ```
 
-### Running from an R session
+## Requirements
+
+### R (≥ 4.2 recommended)
+
+Install the packages your scripts call:
 
 ```r
-source("data_pipeline_weather.R")
-source("data_pipeline_soybeans.R")
-source("data_pipeline_join_df.R")
-source("modelling.R")
-source("data_pipeline_predictions.R")
-source("diagnostics.R")
-source("visualization.R")
+install.packages(c(
+  "data.table","nlme","ggplot2"
+))
+```
+
+> If you prefer **base R**, the pipeline remains compatible—use base functions where tidyverse verbs appear.
+
+### Python (only if using `segmentation/`)
+
+Create the environment **from the provided file**:
+
+```bash
+# using conda or mamba
+conda env create -f segmentation/requirements.yml
+# then activate the environment name defined inside that file:
+conda activate <env-name-from-requirements.yml>
 ```
 
 
