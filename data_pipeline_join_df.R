@@ -64,7 +64,7 @@ model_df$date          <- as.Date(model_df$date)
 model_df$avg_temperature_21 <- (PhenoWeatherData_cast$Measure_21_Temperature)
 model_df$avg_precipitation_21 <- (PhenoWeatherData_cast$Measure_21_Precipitation)
 model_df$avg_radiation_21 <- (PhenoWeatherData_cast$Measure_21_RadiationCap)
-model_df$avg_photothermal_21<- (PhenoWeatherData_cast$Measure_21_PhotothermalProd)
+model_df$avg_photothermal_21<- (PhenoWeatherData_cast$Measure_21_PhotothermalProdSqrt)
 model_df$avg_vpd_21 <- (PhenoWeatherData_cast$Measure_21_VPD)
 model_df$avg_humidity_21 <- (PhenoWeatherData_cast$Measure_21_Humidity)
 

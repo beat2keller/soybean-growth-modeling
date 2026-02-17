@@ -12,13 +12,11 @@ library(data.table)
 
 # data "plot_grouped_global" is used for the grouping of the data
 df = read.csv("data/model_data.csv")
+nrow(subset(df, period%in%c("Reproductive")))
 df <- subset(df, period%in%c(Period,"Both"))
-# if(Period=="Senescence"){
-#   df <- rbind(subset(df, period%in%c(Period,"Both")), subset(df, value>0.9))
-# }
 
 unique(df$date)
-# setDT(df)[,length(unique(platform)),by="year_site.UID"]
+setDT(df)[,length(unique(platform)),by="year_site.UID"]
 df$date <- as.Date(df$date)
 hist(df$value)
 
@@ -39,7 +37,7 @@ df <- df[!is.na(df$value),]
 setDT(df)[,N:=nrow(.SD),by=UID]
 # setDT(df)[,length(unique(genotype.id)),by=year_site.UID]
 
-df <- subset(df, N>4) 
+# df <- subset(df, N>4) 
 if(Period=="Senescence"){
   df$time_since_sowing <- df$time_since_sowing* (-1)
 }
@@ -150,7 +148,11 @@ for (ii in 1:length(outlier_plots)) {
 df <- subset(df, !plot_grouped_global %in%outlier_plots)
 setDT(df)[,length(genotype.id[!duplicated(genotype.id)])]
 setDT(df)[,N:=nrow(.SD),by=genotype.id]
-df <- subset(df, N>25)
+
+if(Period=="Senescence"){
+  df <- subset(df, N>21)
+}
+
 df <- droplevels(df)
 setDT(df)[,length(genotype.id[!duplicated(genotype.id)])]
 df <- as.data.frame(df)
@@ -169,7 +171,9 @@ soyFix <- fixef(cc_rf_scal)
 
 df$platform <- as.factor(df$platform)
 unique(df$year_site.UID)[order(unique(df$year_site.UID))]
-length(unique(df$year_site.UID))
+uniqueN(df$year_site.UID)
+uniqueN(df$genotype.id)
+
 ##
 save.image(paste0("data/",Period,"_data.RData") )
 ###

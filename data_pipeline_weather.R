@@ -61,8 +61,8 @@ Weather_data_cumulative[,CumulativeDailyMean:=cumsum(dailymean), by=.(Location, 
 Weather_data_cumulative[,cum_value:=cumsum(dailymean), by=.(Location, WeatherVariable, Year)]
 Weather_data_cumulative[,Measure_7:=cum_value - shift(cum_value, fill = first(cum_value),n=7), by=.(Year,WeatherVariable,Location) ]
 Weather_data_cumulative[,Measure_14:=cum_value - shift(cum_value, fill = first(cum_value),n=14), by=.(Year,WeatherVariable,Location)  ]
+Weather_data_cumulative[,Measure_21:=cum_value - shift(cum_value, fill = first(cum_value),n=21), by=.(Year,WeatherVariable,Location)  ]
 Weather_data_cumulative[,Measure_28:=cum_value - shift(cum_value, fill = first(cum_value),n=28), by=.(Year,WeatherVariable,Location)  ]
-Weather_data_cumulative[,Measure_56:=cum_value - shift(cum_value, fill = first(cum_value),n=56), by=.(Year,WeatherVariable,Location)  ]
 Weather_data_cumulative$cum_value <- NULL
 
 

@@ -482,8 +482,13 @@ names(soybeans_FIP_UAV_Mask)[!names(soybeans_FIP_UAV_Mask)%in%names(soybeans_FIP
 names(soybeans_FIP_UAV_noMask)[!names(soybeans_FIP_UAV_noMask)%in%names(soybeans_FIP_UAV_Mask)]
 
 soybeans_FIP_UAV <- rbind(soybeans_FIP_UAV_Mask,soybeans_FIP_UAV_noMask)
+uniqueN(soybeans_FIP_UAV$Date)
+uniqueN(soybeans_FIP_UAV$genotype.id)
+
 soybeans_FIP <- subset(soybeans_FIP_UAV, platform=="FIP")
 soybeans_UAV <- subset(soybeans_FIP_UAV_noMask, platform!="FIP")
+
+soybeans_UAV[,uniqueN(.SD$Date),by=.(platform,year_site.UID)]
 
 soybeans_FIP_unique <- unique(soybeans_FIP[,c("year_site.UID","Date","Weed_removed")])
 soybeans_FIP_doubled <- soybeans_FIP_unique[duplicated(paste(Date)),]

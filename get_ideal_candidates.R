@@ -1,195 +1,88 @@
-# This file finds the ideal candidates and gets the coefficients and confidence 
-# intervals for their environmental variable effects
-
-# Firstly, we fit the model with the sum-to-zero constraint
-# most of the code is the same like in the modelling file
-
-library(readr)
 library(nlme)
-# library(stringr)
-library(ggplot2)
-# library(dplyr)
-# library(broom.mixed)
-# library(merTools)
-library(data.table)
-# data "plot_grouped_global" is used for the grouping of the data
-
-load("data/Growth_data.RData") 
-# 
-df$platform <- as.factor(df$platform)
 
 
-options(contrasts= c("contr.sum","contr.poly"))
 
-###
-no_genotypes = length(levels(df$genotype.id))
-dynamic_Asym = c(soyFix[1], rep(0,1*no_genotypes))
-dynamic_xmid = c(soyFix[2], rep(0,3))
-dynamic_scal = c(soyFix[3], rep(0,2*no_genotypes+1))
-
-dynamic_vector <- append(dynamic_Asym, c(dynamic_xmid, dynamic_scal))
-
-# ##
-# start_time <- Sys.time()
-# 
-# Growth_E.GxPTxP_Contr.Sum <- update(cc_rf_scal,
-#                                       fixed = list(Asym ~ genotype.id+platform,
-#                                                    xmid ~ avg_temperature_14 + avg_precipitation_14 + avg_radiation_14,
-#                                                    scal ~ genotype.id:(avg_photothermal_14+avg_precipitation_14)+platform),
-#                                       start = dynamic_vector, control = list (msVerbose = TRUE,
-#                                                                               maxIter = 100,
-#                                                                               msMaxIter = 100))
-# end_time <- Sys.time()
-# print(end_time - start_time)
-# 
-# save(Growth_E.GxPTxP_Contr.Sum, file=paste0("model/", Period, "_E.GxPTxP_Contr.Sum.RData"))
-
-# this runs for up to 2 hours, you can also load it in here:
+load("data/Growth_data.RData")
 load("model/Growth_E.GxPTxP_Contr.Sum.RData")
-
-ci <- data.frame(
-  lower = intervals(Growth_E.GxPTxP_Contr.Sum, which = "fixed")$fixed[, 1],
-  est   = intervals(Growth_E.GxPTxP_Contr.Sum, which = "fixed")$fixed[, 2],
-  upper = intervals(Growth_E.GxPTxP_Contr.Sum, which = "fixed")$fixed[, 3]
-)
-ci$names <- rownames(ci)
-ci$interval <- ci$upper - ci$lower
-
-
-
-## Finding the ideal candidates:
-
-# Now we have exported the data frame to csv, 
-# it is easiest to open it in Excel and filter the genotypes according to the
-# filtering criteria that are written in the report
-
-# Excel tutorial:
-
-# Since the sum-to-zero-constraint removes the original genotypes name and simply 
-# replaces it by 1 ... n, make sure to manually match the correct genotype with 
-# the optimal candidates. This can be easily done in Excel by calculating the coefficient 
-# for any variable using the sum-to-zero model and the normal model with the treatment 
-# constraint. Since the estimates are always the same and the treatment-constraint 
-# model preserves the genotype, just get the estimate for e.g. Asymptote by 
-# adding the reference level + interaction effect for the treatment constraint 
-# and the overall-mean + interaction for the sum-to-zero constraint and then check 
-# which genotype has the exact same estimate for that parameter.
-
-# all this can also be done in R directly:
-
-ci$names[]
-candidate <- gsub("\\D", "Asym", ci)
-indices <- grep("Asym.genotype.id", ci$names)
-
-# extract the estimates and confidence intervals per variable
-
-
-prec_main_effect <- 0#ci$interval[grep("scal.avg_precipitation_14", ci$names)] # to be offset
-rad_main_effect <- 0#ci$interval[grep("scal.avg_photothermal_14", ci$names)] # to be offset
-
-
-prec_intervals <- ci$interval[grep("^scal\\.genotype\\.id[0-9]+:avg_precipitation_14$", ci$names)]
-quantile(prec_intervals)
-rad_intervals <- ci$interval[grep("^scal\\.genotype\\.id[0-9]+:avg_photothermal_14$", ci$names)]
-quantile(rad_intervals)
-asym_intervals <- ci$interval[grep("Asym.genotype.id", ci$names)]
-quantile(asym_intervals)
-scals_intervals <- ci$interval[grep("scal\\.genotype\\.id[^:]*$", ci$names)]
-quantile(scals_intervals)
-precs <- ci$est[grep("^scal\\.genotype\\.id[0-9]+:avg_precipitation_14$", ci$names)]
-quantile(precs)
-rad <- ci$est[grep("^scal\\.genotype\\.id[0-9]+:avg_photothermal_14$", ci$names)]
-scals <- ci$est[grep("scal\\.genotype\\.id[^:]*$", ci$names)]
-asym <- ci$est[grep("Asym.genotype.id", ci$names)]
-
-# initiate dataframe for ideal candidates
-genotype_selection <- data.frame(matrix(data=NA, nrow=length(unique(df$genotype.id)), ncol=9))
-colnames(genotype_selection) = c('genotype', 'prec_int','prec','rad_int','rad_int_2','rad', 'rad_2','asymp','asym_int')
-
-# filter all estimates and intervals of the variables according to the filtering criteria
-# explained in the report
-
-i =1
-for (i in 1:length(unique(df$genotype.id))) {
-  genotype_selection[i, 1] = i
-  genotype_selection[i, 2] = ifelse(prec_intervals[i] < quantile(prec_intervals,0.5), 1,0)
-  genotype_selection[i, 3] = ifelse(rad_intervals[i] < quantile(rad_intervals,0.5), 1,0)
-  # genotype_selection[i, 4] = ifelse(rad_intervals[i] < quantile(rad_intervals,0.75), 1,1) #  removed
-  median(prec_main_effect+precs)
-  precs_abs <- abs(prec_main_effect+precs)
-  genotype_selection[i, 4] = ifelse(precs_abs[i] < quantile(precs_abs,0.1), 1, 0)  # offset quantile(precs)[3]50%  0.4803419 
-  rad_abs <- abs(rad_main_effect+rad)
-  genotype_selection[i, 5] = ifelse(rad_abs[i] < quantile(rad_abs,0.1), 1, 0) # 
-  genotype_selection[i, 6] = ifelse(asym[i] > quantile(asym,0.75), 1, 0) 
-  # genotype_selection[i, 7] = ifelse(rad_abs[i] < quantile(rad_abs,0.15), 1, 1) #  removed
-  # genotype_selection[i, 8] = ifelse(rad_abs[i] < quantile(rad_abs,0.25), 1, 1) #  removed
-  # genotype_selection[i, 9] = ifelse(asym_intervals[i] < quantile(asym_intervals,0.25), 1, 1) #  removed
-  # genotype_selection[i, 10] = ifelse(asym_intervals[i] < quantile(asym_intervals,0.05), 1, 1)  #  removed
-  
-  i = i+1
-}
-
-
-genotype_selection$sum = rowSums(genotype_selection[, c(2:6)]) 
-max(genotype_selection$sum,na.rm = T)
-candidates = genotype_selection$genotype[genotype_selection$sum > (max(genotype_selection$sum,na.rm = T)-1)] # get the genotypes fulfilling more than ... criteria
-candidates <- candidates[!is.na(candidates)]
-candidates
-# Since the sum-to-zero constraint removes the genotype-id identification, we need
-# to match the candidates with the correct id by matching the calculated estimates.
-# To do that we need a baseline-model with the treatment-constraint and then 
-# calculate the genotype-specific Asymptote estimate for both constraints and match them
-
-options(contrasts= c("contr.treatment","contr.poly"))
-df$genotype.id <- relevel(df$genotype.id, ref= as.character(unique(df$genotype.id)[length(unique(df$genotype.id))][[1]]))
-
-# you can skip this by loading in the model directly (see below)
-# start_time <- Sys.time()
-
-
-# Growth_E.GxPTxP <- update(cc_rf_scal,
-#                                       fixed = list(Asym ~ genotype.id+platform,
-#                                                    xmid ~ avg_temperature_14 + avg_precipitation_14 + avg_radiation_14,
-#                                                    scal ~ genotype.id:(avg_photothermal_14+avg_precipitation_14)+platform),
-#                                       start = dynamic_vector, control = list (msVerbose = TRUE,
-#                                                                               maxIter = 100,
-#                                                                               msMaxIter = 100))
-# end_time <- Sys.time()
-# print(end_time - start_time)
-# 
-# save(Growth_E.GxPTxP, file=paste0("model/", Period, "6_E.GxPxPre.RData"))
-
-# this runs for up to 20 mins, you can also load it in here:
 load("model/Growth_E.GxPTxP.RData")
 
-ci_baseline <- data.frame(
-  lower = intervals(Growth_E.GxPTxP, which = "fixed")$fixed[, 1],
-  est   = intervals(Growth_E.GxPTxP, which = "fixed")$fixed[, 2],
-  upper = intervals(Growth_E.GxPTxP, which = "fixed")$fixed[, 3]
+library(nlme)
+
+ci <- data.frame(
+  lower = intervals(Growth_E.GxPTxP_Contr.Sum, which="fixed")$fixed[,1],
+  est   = intervals(Growth_E.GxPTxP_Contr.Sum, which="fixed")$fixed[,2],
+  upper = intervals(Growth_E.GxPTxP_Contr.Sum, which="fixed")$fixed[,3]
 )
-ci_baseline$names <- rownames(ci_baseline)
+ci$names    <- rownames(ci)
+ci$interval <- ci$upper - ci$lower
 
-# calculating the genotype-specific asymptote
-ci_baseline$Asym_est = NA
-length(ci_baseline$names[grepl("Asym.genotype.",ci_baseline$names)])
-for (i in 2:length(unique(df$genotype.id))) {
-  ci_baseline$Asym_est[i] = ci_baseline$est[i] + ci_baseline$est[1]
+geno_levels <- levels(droplevels(getData(Growth_E.GxPTxP_Contr.Sum)$genotype.id))
+nG <- length(geno_levels)
+
+# ---- extractor for scal.* terms (names contain genotype CODES like 10001)
+get_by_genocode <- function(regex, vec, geno_levels) {
+  hit <- grepl(regex, ci$names)
+  nm  <- ci$names[hit]
+  v   <- vec[hit]
+  code <- sub(".*genotype\\.id", "", sub("(:.*)$", "", nm))   # "10001"
+  out  <- rep(NA_real_, length(geno_levels))
+  idx  <- match(code, geno_levels)
+  out[idx[!is.na(idx)]] <- v[!is.na(idx)]
+  out
 }
 
-# matching the genotype from the two models
-candidate_genotypes = c()
-for (i in 1:length(na.omit(candidates))) {
-  asym_cand = asym[candidates[i]] + ci$est[1] + ci$est[grep("Asym.platform",rownames(ci))] ## candidate effect + intercept + platfrom
-  par_cand <- (ci_baseline$names[round(ci_baseline$Asym_est,6)  == round(asym_cand,6)])
-  par_cand <- par_cand[grepl("Asym",par_cand)]
-  candidate <- gsub("\\D", "", par_cand)
-  if(length(candidate)==0){candidate <- "10001"} # fix me
-  print(candidate)
-  candidate_genotypes = c(candidate_genotypes, candidate)
+# ---- extractor for Asym.* terms (names contain indices like genotype.id1)
+get_by_index <- function(regex, vec, nG) {
+  hit <- grepl(regex, ci$names)
+  nm  <- ci$names[hit]
+  v   <- vec[hit]
+  id  <- as.integer(sub(".*genotype\\.id", "", nm))          # 1..(nG-1)
+  out <- rep(NA_real_, nG)
+  ok  <- !is.na(id) & id >= 1 & id <= (nG-1)
+  out[id[ok]] <- v[ok]
+  out[nG] <- -sum(out[1:(nG-1)], na.rm=TRUE)                 # implicit contr.sum level
+  out
 }
 
+# ---- extract correctly
+prec_intervals <- get_by_genocode("^scal\\.genotype\\.id[0-9]+:avg_precipitation_14$", ci$interval, geno_levels)
+rad_intervals  <- get_by_genocode("^scal\\.genotype\\.id[0-9]+:avg_photothermal_14$",  ci$interval, geno_levels)
+precs          <- get_by_genocode("^scal\\.genotype\\.id[0-9]+:avg_precipitation_14$", ci$est,      geno_levels)
+rad            <- get_by_genocode("^scal\\.genotype\\.id[0-9]+:avg_photothermal_14$",  ci$est,      geno_levels)
 
-write.csv(data.frame(candidate_genotypes),
+asym_eff       <- get_by_index("^Asym\\.genotype\\.id[0-9]+$", ci$est, nG)
+
+# ---- thresholds (computed on available values; avoids quantile NA errors)
+q_prec_int <- quantile(prec_intervals[!is.na(prec_intervals)], 0.25)
+q_rad_int  <- quantile(rad_intervals[!is.na(rad_intervals)],   0.25)
+q_prec     <- quantile(abs(precs[!is.na(precs)]),              0.05)
+q_rad      <- quantile(abs(rad[!is.na(rad)]),                  0.05)
+q_asym     <- quantile(asym_eff[!is.na(asym_eff)],             0.75)
+
+genotype_selection <- data.frame(
+  genotype = geno_levels,
+  prec_int = ifelse(prec_intervals < q_prec_int, 1, 0),
+  rad_int  = ifelse(rad_intervals  < q_rad_int,  1, 0),
+  prec     = ifelse(abs(precs)     < q_prec,     1, 0),
+  rad      = ifelse(abs(rad)       < q_rad,      1, 0),
+  asymp    = ifelse(asym_eff       > q_asym,     1, 0)
+)
+
+genotype_selection$sum <- rowSums(genotype_selection[,2:6], na.rm=FALSE)
+
+max_sum <- max(genotype_selection$sum, na.rm=TRUE)
+candidates <- genotype_selection$genotype[genotype_selection$sum > (max_sum - 1)]
+candidates <- candidates[!is.na(candidates)]
+
+cat("nG:", nG, "\n")
+cat("Max score:", max_sum, "\n")
+cat("N candidates:", length(candidates), "\n")
+candidates
+
+
+
+
+write.csv(data.frame(candidates),
           file = "model/candidates/candidate_genotypes.csv",
           row.names = FALSE)
 
@@ -358,8 +251,8 @@ overview_all_df <- merge(overview_all_df, add_gen_id, by="genotype.id")
 overview_all_df$Selection[overview_all_df$genotype.id%in%candidate_genotypes] <- overview_all_df$Genotype[overview_all_df$genotype.id%in%candidate_genotypes]
 overview_all_df$variable <- overview_all_df$Scale
 overview_all_df$variable[overview_all_df$Scale=="Asym"] <- "Asym"
-overview_all_df$variable[overview_all_df$Interaction=="avg_photothermal_14"] <- "G:P"
-overview_all_df$variable[overview_all_df$Interaction=="avg_precipitation_14"] <- "G:Pre"
+overview_all_df$variable[overview_all_df$Interaction=="avg_photothermal_14"] <- "G:PT"
+overview_all_df$variable[overview_all_df$Interaction=="avg_precipitation_14"] <- "G:P"
 
 p <- subset(overview_all_df,Scale!="Intercept")
 unique(subset(p, genotype.id%in%candidate_genotypes)$Genotype)

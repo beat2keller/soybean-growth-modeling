@@ -57,7 +57,7 @@ generate_diagnostic_plots <- function(models, title) {
     scale_color_manual(values = model_colors) +
     labs(title = "Fitted Values vs Residuals", x = "Fitted Values", y = "Residuals") +
     theme_minimal() +
-    theme(panel.border = element_rect(colour = "black", fill = NA, linewidth = 1))
+    theme(panel.border = element_rect(colour = "black", fill = NA, linewidth = 1),legend.position = "top")
   
   # Debugging: Check if DataFrame is created properly
   print(head(residuals_df))

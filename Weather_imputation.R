@@ -15,15 +15,11 @@ library(stringr)
 library(readr)
 library(plyr)
 library(dplyr)
-# library(useful)
 library(utils)
 library(data.table)
 library(plantecophys)
-# library(gstat)
-# library(spdep)
-# library(sp)
 library(tidyr)
-
+library(ggplot2)
 library(zoo)
 
 #' 
@@ -306,8 +302,14 @@ CHE_Weather_cleaned$VPD[complete_rows] <- RHtoVPD(CHE_Weather_cleaned$Humidity[c
 complete_rows <- complete.cases(CHE_Weather_cleaned$Radiation, CHE_Weather_cleaned$Temperature)
 
 # Apply function only to non-NA rows
+# CHE_Weather_cleaned$RadiationCap <- CHE_Weather_cleaned$Radiation
+# CHE_Weather_cleaned$RadiationCap[CHE_Weather_cleaned$Radiation>750] <- 750
 CHE_Weather_cleaned$PhotothermalProd[complete_rows] <- CHE_Weather_cleaned$Temperature[complete_rows] * CHE_Weather_cleaned$Radiation[complete_rows]
 CHE_Weather_cleaned$PhotothermalUnit[complete_rows] <- (CHE_Weather_cleaned$Temperature-6)[complete_rows] * CHE_Weather_cleaned$Radiation[complete_rows] # minus 6°C base temperature
+# CHE_Weather_cleaned$PhotothermalProdSqrt[complete_rows] <- (CHE_Weather_cleaned$Temperature)[complete_rows] * sqrt(CHE_Weather_cleaned$Radiation)[complete_rows] # minus 6°C base temperature
+# CHE_Weather_cleaned$PhotothermalProdSqrt[is.infinite(CHE_Weather_cleaned$PhotothermalProdSqrt)] <- NA
+# CHE_Weather_cleaned$PhotothermalProdSqrt[complete_rows] <- (CHE_Weather_cleaned$Temperature)[complete_rows] * CHE_Weather_cleaned$RadiationCap[complete_rows] # minus 6°C base temperature
+
 
 # CHE_Weather_cleaned$PhotothermalRatio[complete_rows] <- CHE_Weather_cleaned$Radiation[complete_rows]/CHE_Weather_cleaned$Temperature[complete_rows] 
 # CHE_Weather_cleaned$PhotothermalRatio[is.infinite(CHE_Weather_cleaned$PhotothermalRatio)] <- NA
@@ -417,7 +419,7 @@ Weather_imputed$imp <- NULL
 Weather_imputed$Measured <- NULL
 Weather_imputed[,nrow(.SD),by=.(WeatherVariable,Location)]
 
-# write.csv(subset(Weather_imputed,Location%in%c("Lindau","Delley")), "Weather_imputed.csv", quote=F, row.names=F)
+write.csv(subset(Weather_imputed,Location%in%c("Lindau","Delley")), "Weather_imputed.csv", quote=F, row.names=F)
 
 
 p <- subset(Weather_imputed, Imputed=="Imputed")
