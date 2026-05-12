@@ -445,7 +445,7 @@ R2_plot_data[, label := paste0("R² = ", round(V1, 2))]
 R2_plot_data[, x := ifelse(Period == "Growth", x_min, x_max)]
 R2_plot_data[, y := Inf]
 
-tol9qualitativeAdj <- (tol10qualitative[c(2,6,3,1,7:9,4,5,10)]) 
+tol9qualitativeAdj <- (tol10qualitative[c(2,6,3,5,7:9,4,1,10)]) 
 # p$genotype.name <- paste(p$genotype.name, p$Selection)
 # p_ideal_candidates$genotype.name <- paste(p_ideal_candidates$genotype.name, p_ideal_candidates$Selection)
 
@@ -1096,7 +1096,7 @@ fit_one_lm <- function(yield_coefs, model_ids,
 }
 
 # ---------- tidy output ----------
-tidy_lm <- function(fit, model_name, digits_se = 3) {
+tidy_lm <- function(fit, model_name, digits_se = 2) {
   s <- summary(fit)
   
   cf <- as.data.table(s$coefficients, keep.rownames = "Predictor")
@@ -1105,11 +1105,22 @@ tidy_lm <- function(fit, model_name, digits_se = 3) {
   cf[, Model := model_name]
   
   # estimate: signif(4), SE: fixed decimals, stars unchanged
-  cf[, Estimate_SE :=paste0(
-    format(signif(Estimate, 4), scientific = FALSE),
-    " (", format(signif(SE, digits_se), scientific = FALSE), ")",
+  cf[, Estimate_SE := paste0(
+    ifelse(
+      abs(Estimate) > 1000,
+      formatC(round(Estimate, 0), format = "f", digits = 0),
+      formatC(round(Estimate, 2), format = "f", digits = 2)
+    ),
+    " (",
+    ifelse(
+      abs(Estimate) > 1000,
+      formatC(round(SE, 0), format = "f", digits = 0),
+      formatC(round(SE, digits_se), format = "f", digits = digits_se)
+    ),
+    ")",
     sig_stars(p)
   )]
+  
   
   cf[, `:=`(
     R2 = round(unname(s$r.squared), 2),
@@ -1175,7 +1186,8 @@ coef_table_final <- coef_table[, .(Model, Predictor, Estimate_SE, R2, Adj_R2, n)
 # ----------------------------
 # 1) Clean Predictor suffixes (remove "(Growth)" / "(Senescence)" if present)
 # ----------------------------
-coef_table_final[, Predictor := gsub("\\s*\\((Growth|Senescence)\\)", "", Predictor)]
+coef_table_final[, Predictor := gsub("\\s*\\((Growth)\\)", "_{Gro}", Predictor)]
+coef_table_final[, Predictor := gsub("\\s*\\((Senescence)\\)", "_{Sen}", Predictor)]
 
 # ----------------------------
 # 2) Parse model structure + define Period
@@ -1249,7 +1261,6 @@ tab <- coef_table_final[, .(
   Model = Model_print,
   Predictor,
   Estimate = Estimate_SE,
-  `R^2` = R2_print,
   `Adj. R^2` = AdjR2_print,
   n = n_print
 )]
@@ -1272,17 +1283,17 @@ tab[, Model     := latex_escape(Model)]
 latex_lines <- c(
   "\\begin{table}[htbp]",
   "\\centering",
-  "\\caption{Linear models explaining genotypic variability in protein yield using coefficients from non-linear green canopy cover (CC) growth and senescence models as predictors. Estimates are shown with standard errors in parentheses, $R^2$, and the number of genotypes (\textit{n}).}",
+  "\\caption{Linear models explaining genotypic variability in protein yield using coefficients from non-linear green canopy cover (CC) growth and senescence models as predictors. Estimates are shown with standard errors in parentheses, adjusted $R^2$, and the number of genotypes (\\textit{n}).}",
   "\\label{tab:protein_yield_models}",
-  "\\begin{tabular}{llcrcr}",
+  "\\begin{tabular}{llcrc}",
   "\\toprule",
-  "\\textbf{Model} & \\textbf{Predictor} & \\textbf{Estimate (SE)} & \\textbf{$R^2$} & \\textbf{Adj. $R^2$} & \\textbf{$n$} \\\\",
+  "\\textbf{Model} & \\textbf{Predictor} & \\textbf{Estimate (SE)} & \\textbf{Adj. $R^2$} & \\textbf{$n$} \\\\",
   "\\midrule"
 )
 
 latex_body <- tab[, sprintf(
-  "%s & %s & %s & %s & %s & %s \\\\",
-  Model, Predictor, Estimate, `R^2`, `Adj. R^2`, n
+  "%s & %s & %s & %s & %s \\\\",
+  Model, Predictor, Estimate, `Adj. R^2`, n
 )]
 
 latex_lines <- c(
@@ -1296,6 +1307,7 @@ latex_lines <- c(
 )
 
 cat(paste(latex_lines, collapse = "\n"))
+
 
 ###############
 
@@ -1920,6 +1932,44 @@ ggDensity <- ggplot(p,aes(x=dailymean, fill=Year, color=Year))+ ylab("Value")+
     labeller = label_parsed) 
 ggDensity
 
+
+ggBox <- ggplot(p, aes(x = Year, y = dailymean, fill = Year, color = Year)) +
+  ylab("Value") +
+  theme_bw() +
+  theme(
+    plot.title = element_text(hjust = -0.2),
+    strip.placement = "outside",
+    panel.spacing.x = unit(-0.2, "lines"),
+    strip.background = element_blank(),
+    legend.title = element_blank(),
+    legend.key.height = unit(0.5, "line"),
+    legend.key.size = unit(1, "lines"),
+    legend.position = "none",
+    panel.border = element_rect(colour = "black", fill = NA, size = 1),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    axis.text.x = element_text(angle = 0, hjust = 0.5),
+    text = element_text(size = 10),
+    axis.title = element_blank()
+  ) +
+  geom_boxplot(alpha = 0.5, outlier.size = 0.5) +
+  scale_color_manual(values = tol8qualitative) +
+  scale_fill_manual(values = tol8qualitative) +
+  facet_grid2(
+    WeatherVariable2 ~ Location,
+    scales = "free",
+    independent = "x",
+    switch = "y",
+    labeller = label_parsed
+  )
+
+ggBox
+
+
+weather_mean <- p[,sum(dailymean),by=.(WeatherVariable,Year,Location)]
+weather_mean[order(weather_mean$V1,weather_mean$WeatherVariable,decreasing = T),]
+
+
 p$month <-  as.factor(format(p$Date,"%m"))
 
 p[WeatherVariable=="Precipitation",list(sum(dailymean,na.rm=T)),by=.(Year,Location,month)]
@@ -1975,7 +2025,356 @@ second_row <- plot_grid(ggDensityModel, ggBeanCoef, ncol = 2, rel_widths = c(0.4
 
 ########
 
+p <- subset(RefTraits_2015_22,
+            variable %in% c("Protein.yield"))
 
+p$predicted.values <- p$value
+p$genotype.id <- as.character(p$genotype.id)
+
+# harvest_data_cast <- dcast.data.table(
+#   p,
+#   plot.UID + genotype.id + year_site.UID + Date ~ variable,
+#   value.var = "predicted.values"
+# )
+
+unique(p$year_site.UID)
+
+# =========================================================
+# Merge coefficients
+# =========================================================
+yield_coefs <- merge(
+  subset(p, variable != "Canopy_cover"),
+  coefs_CC,
+  by = "genotype.id",
+  allow.cartesian = TRUE
+)
+
+# yield_coefs <- merge(
+#   SpATsBLUE_overall,
+#   SpATsBLUE_overall_CC,
+#   by = "genotype.id",
+#   allow.cartesian = TRUE
+# )
+
+yield_coefs[, uniqueN(genotype.id), by = variable.x]
+
+yield_coefs <- setDT(yield_coefs)
+
+yield_coefs$variable_measured <- yield_coefs$variable.x
+yield_coefs$variable_fitted  <- yield_coefs$variable.y
+
+# =========================================================
+# Prepare dataset
+# =========================================================
+# p_env <- p_Growth[
+#   ,
+#   list(N_env = length(unique(year_site.UID))),
+#   by = genotype.id
+# ]
+
+p <- subset(yield_coefs)
+
+# p <- subset(
+#   yield_coefs,
+#   genotype.id %in% p_env$genotype.id[p_env$N_env > 1]
+# )
+
+p$Year <- as.factor(format(p$Date, "%Y"))
+
+p$year_loc <- paste(
+  p$Location,
+  p$Year,
+  sep = ","
+)
+
+p$dataset <- p$year_loc
+
+# p$dataset[
+#   p$genotype.id %in%
+#     p_env$genotype.id[p_env$N_env > 1]
+# ] <- ">1 env"
+
+p <- subset(
+  p,
+  Model %in% c(
+    "Model0",
+    "Model2",
+    "Model3",
+    "Model5",
+    "Model10"
+  )
+)
+
+p <- p[!is.na(value), ]
+p <- p[!is.na(estimate), ]
+
+# =========================================================
+# Correlations
+# =========================================================
+r2 <- subset(p)
+
+r2 <- setDT(r2)[
+  ,
+  list(
+    r       = cor(value, estimate),
+    p_cor   = cor.test(value, estimate)$p.value,
+    N       = nrow(.SD),
+    xx      = min(value, yy = min(estimate), na.rm = TRUE),
+    yy      = max(estimate, na.rm = TRUE),
+    N_geno  = uniqueN(genotype.id)
+  ),
+  by = .(
+    variable.y,
+    variable.x,
+    dataset,
+    Model
+  )
+]
+
+r2$Significance <- ""
+
+r2$Significance[r2$p_cor < 0.1]   <- "."
+r2$Significance[r2$p_cor < 0.05]  <- "*"
+r2$Significance[r2$p_cor < 0.01]  <- "**"
+r2$Significance[r2$p_cor < 0.001] <- "***"
+
+r2$r <- paste(
+  "r=",
+  round(r2$r, digits = 2),
+  r2$Significance
+)
+
+r2 <- setDT(r2)[
+  ,
+  xx := min(xx, na.rm = TRUE),
+  by = .(
+    variable.y,
+    variable.x,
+    dataset,
+    Model
+  )
+]
+
+r2 <- setDT(r2)[
+  ,
+  yy := min(yy, na.rm = TRUE),
+  by = .(
+    variable.y,
+    variable.x,
+    dataset,
+    Model
+  )
+]
+
+# =========================================================
+# Merge correlations
+# =========================================================
+p <- merge(
+  p,
+  r2,
+  by = c(
+    "variable.x",
+    "variable.y",
+    "dataset",
+    "Model"
+  )
+)
+
+p <- p[
+  ,
+  xx := min(value, na.rm = TRUE),
+  by = .(
+    variable.x,
+    dataset,
+    Model
+  )
+]
+
+p$variable_measured <- gsub(
+  "Protein.yield",
+  "Protein yield (t/ha)",
+  p$variable_measured
+)
+
+# =========================================================
+# Model labels
+# =========================================================
+model_map <- c(
+  "Model0"  = "Growth_E.GxPTxP",
+  "Model1"  = "Growth1_G",
+  "Model2"  = "Growth2_E.GxT",
+  "Model3"  = "Growth3_E.GxPT",
+  "Model4"  = "Growth4_E.GxR",
+  "Model5"  = "Growth5_E.GxP",
+  "Model6"  = "Growth6_E.GxPT",
+  "Model7"  = "Growth7_E.GxRxP",
+  "Model10" = "Sen_E.GxPT"
+)
+
+p[, Model_label := model_map[Model]]
+
+p$variable_fitted <- gsub(
+  "Interaction",
+  "Scal.Gen:",
+  p$variable_fitted
+)
+
+p$variable_fitted <- gsub(
+  ".Growth",
+  "",
+  p$variable_fitted
+)
+
+p$variable_fitted <- gsub(
+  ".Senescence",
+  "",
+  p$variable_fitted
+)
+
+p$Model_label <- gsub(
+  "Growth",
+  "Gr",
+  p$Model_label
+)
+
+# =========================================================
+# Plot
+# =========================================================
+ggplot(
+  data = p,
+  aes(
+    y = estimate,
+    x = value
+  )
+) +
+  ylab("Model coefficients") +
+  xlab("Protein yield (t/ha)") +
+  
+  theme_bw() +
+  
+  theme(
+    panel.spacing.x = unit(-0.2, "lines"),
+    # panel.spacing.y = unit(-0.2, "lines"),
+    plot.title = element_text(hjust = -0.2),
+    strip.placement = "outside",
+    strip.background = element_blank(),
+    legend.key.size = unit(0.6, "lines"),
+    legend.title = element_blank(),
+    legend.position = "none",
+    panel.border = element_rect(
+      colour = "black",
+      fill = NA,
+      size = 1
+    ),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    axis.text.x = element_text(
+      angle = 0,
+      hjust = 0.5
+    ),
+    text = element_text(size = 11)
+  ) +
+  
+  # geom_errorbar(
+  #   aes(
+  #     ymin = estimate - SE_trend,
+  #     ymax = estimate + SE_trend
+  #   ),
+  #   color = "grey90",
+  #   width = 0.000001
+  # ) +
+  
+  # geom_errorbarh(
+  #   aes(
+  #     xmin = value.1 - SD_Biomass,
+  #     xmax = value.1 + SD_Biomass
+  #   ),
+  #   height = 0.000001,
+  #   color = "grey90"
+  # ) +
+  
+  geom_point(  aes(
+      y = estimate,
+      x = value,
+      fill = estimate
+    ),
+    size = 1.25,
+    alpha = 0.5
+  ) +
+  
+  # scale_color_gradientn(
+  #   colours = c("yellow3", "darkblue")
+  # ) +
+  
+  scale_y_continuous(
+    labels = function(x)
+      format(x, scientific = TRUE)
+  ) +
+  
+  # scale_shape_manual(
+  #   values = c(19, 2, 4, 15, 12, 6)
+  # ) +
+  
+  guides(
+    shape = guide_legend(
+      override.aes = list(size = 2)
+    ),
+    color = guide_legend(
+      override.aes = list(size = 2)
+    )
+  ) +
+  
+  geom_smooth(
+    method = "lm",
+    formula = y ~ x,
+    aes(group = 1),
+    fill = NA,
+    alpha = 1,
+    show.legend = FALSE
+  ) +
+  
+  facet_grid(
+    Period + variable_fitted + Model_label ~ Location+Year,
+    scales = "free",
+    switch = "both"
+  ) +
+  
+  # geom_vline(
+  #   aes(xintercept = Quantile),
+  #   linetype = "dashed"
+  # ) +
+  
+  # geom_boxplot(
+  #   outlier.colour = "grey"
+  # ) +
+  
+  # stat_boxplot(
+  #   geom = "errorbar",
+  #   width = 0.2
+  # ) +
+  
+  # geom_text_repel(
+  #   aes(label = Label),
+  #   color = "grey3",
+  #   size = 2.5,
+  #   box.padding = 1
+  # ) +
+  
+  geom_text(
+    size = 8 / (14 / 5),
+    color = "grey30",
+    show.legend = FALSE,
+    aes(
+      x = xx,
+      y = Inf,
+      label = r,
+      vjust = 1.2,
+      hjust = 0
+    ),
+    check_overlap = TRUE
+  )
+
+# ggsave(  "Coef_YearSite.pdf",  width = 180,   height = 280,   units = "mm",   dpi = 300 )
 
 ##########
 

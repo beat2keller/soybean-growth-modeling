@@ -260,6 +260,7 @@ p <- subset(p, !(Scenario == "Extrem environment: Precipitation" & scenario %in%
 # Define color palette
 tol6qualitative = c("#332288", "#88CCEE", "#117733", "#DDCC77", "#CC6677", "#AA4499")
 tol9qualitative=c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#CC6677", "#882255", "#AA4499")
+tol10qualitative=c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#661100", "#CC6677", "#882255", "#AA4499")
 
 # Create the plot with confidence intervals
 ggFit <- ggplot(data = p, aes(time_since_sowing, Fit, color = Genotype, shape = scenario)) +
@@ -278,7 +279,7 @@ ggFit <- ggplot(data = p, aes(time_since_sowing, Fit, color = Genotype, shape = 
   ) +
   # geom_ribbon(aes(ymin = CI_lower, ymax = CI_upper, fill = genotype.id), alpha = 0.2, color = NA) +  # Add CI
   geom_point(size = 2, alpha = 1) +
-  scale_color_manual(name="Genotype",values = c(tol10qualitative[c(6,1,8,4,5)],"grey")) +
+  scale_color_manual(name="Genotype",values = c(tol10qualitative[c(6,5,8,4,1)],"grey")) +
   scale_shape_manual("Environment \n (Scenario)" ,values = c(16,17,4,5,15)) +
   geom_line(size = 0.5, alpha = 0.5, aes(linetype = GxE)) +
   ylim(c(0,1)) +
@@ -306,7 +307,7 @@ ggFit_sub <- ggplot(data = p_fit, aes(time_since_sowing, Fit, color = Genotype, 
   ) +
   # geom_ribbon(aes(ymin = CI_lower, ymax = CI_upper, fill = genotype.id), alpha = 0.2, color = NA) +  # Add CI
   geom_point(size = 1, alpha = 1) +
-  scale_color_manual(name="Genotype",values = c(tol10qualitative[c(6,8,4,5)],"grey")) +
+  scale_color_manual(name="Genotype",values = c(tol10qualitative[c(6,8,4,1)],"grey")) +
   scale_shape_manual("Environment \n (Scenario)" ,values = c(16,17,4,5,15)) +
   geom_line(size = 0.5, alpha = 0.5, aes(linetype = GxE)) +
   ylim(c(0,1)) 
@@ -446,7 +447,7 @@ gg <- ggplot(
   ylab(NULL) +
   xlab("Days after sowing (d)") +
   scale_shape_manual(name="Scenario",values = c(16,17,4)) +
-  scale_color_manual(values = c(tol10qualitative[c(6,8,4,5)], "grey"))
+  scale_color_manual(values = c(tol10qualitative[c(6,8,4,1)], "grey"))
 
 gg
 
@@ -529,7 +530,7 @@ ggIdeal_coef <- ggplot(p, aes(x = Genotype, y = est., color = Selection)) +xlab(
   geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2, position = position_dodge(width = 0.5), color="grey") +  # Add error bars
   geom_point(data=subset(p, genotype.id%in%select_geno),size =2 )+ 
   geom_errorbar(data=subset(p, genotype.id%in%select_geno),aes(ymin = lower, ymax = upper), width = 0.2, position = position_dodge(width = 0.5), color="black") +  # Add error bars
-  scale_color_manual(values =c(tol10qualitative[c(6,1,8,4,5)],"grey"))+
+  scale_color_manual(values =c(tol10qualitative[c(6,5,8,4,1)],"grey"))+
   geom_hline(aes(yintercept=mean_est),linetype="dashed")+
   facet_grid(variable~.,scales = "free",switch="both")
 
