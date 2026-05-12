@@ -2172,7 +2172,7 @@ draw_and_plot <- function(df,legend) {
     # Add a legend for the rectangle color
     legend("topright",  # Position of the legend
            legend = c("Selected","Discarded","Soybean"),  # Labels for the legend
-           border = c("blue3","darkred","#DDCC77"), 
+           border = c("#00BFFF","#FFD700","#FF00FF"), 
            fill="white",
            #title = "Rectangle Color",  # Title of the legend box
            box.lty =  0,  # No border for the legend box
@@ -2187,54 +2187,158 @@ draw_and_plot <- function(df,legend) {
 
 
 
-draw_and_plot_middle <- function(df, row_info, legend = TRUE) {
-  # Load the first image
-  row_info <- subset(row_info, Filename==gsub("_q90.jpg","_segmentation.png",df$FilenameQ90[1]))
-  im <- load.image(df$FilenameQ90[1])
+draw_and_plot_middle <- function(df,
+                                 row_info,
+                                 legend = TRUE,
+                                 axis   = TRUE, 
+                                 crop_top    = 750,
+                                 crop_bottom = 750) {
   
-  # Plot the image
-  png(paste0(df$FilenameQ90[1], "_WeedLocation.png"), width = 560 * 2, height = 400 * 2)
+  library(imager)
+  library(data.table)
   
-  plot(im)
+  ## ---------------------------------------------------------
+  ## 1. match row info
+  ## ---------------------------------------------------------
+  row_info_sub <- subset(
+    row_info,
+    Filename == gsub("_q90.jpg", "_segmentation.png", df$FilenameQ90[1])
+  )
   
-  # Plot middle lines based on row_info
-  for (i in 1:nrow(row_info)) {
-    slope <- row_info$Plot_slope[i]
+  if (nrow(row_info_sub) == 0) {
+    row_info_sub <- subset(
+      row_info,
+      Filename == gsub("_split.png", "_segmentation.png", df$FilenameQ90[1])
+    )
+  }
+  
+  ## ---------------------------------------------------------
+  ## 2. load and crop image (750 px top & bottom)
+  ## ---------------------------------------------------------
+  im_full <- load.image(df$FilenameQ90[1])
+  img_h   <- dim(im_full)[2]
+
+  
+  im <- imsub(
+    im_full,
+    y %in% (crop_bottom + 1):(img_h - crop_top)
+  )
+  
+  
+  
+  ## ---------------------------------------------------------
+  ## 3. open device
+  ## ---------------------------------------------------------
+  png(
+    paste0(df$FilenameQ90[1], "_WeedLocation.png"),
+    width  = dim(im)[1]/ 4,
+    height = dim(im)[2]/ 4
+  )
+  
+  ## ---------------------------------------------------------
+  ## 4. plot image
+  ## ---------------------------------------------------------
+  old_par <- par(no.readonly = TRUE)
+  # 
+  if (!axis) {
+    par(mar = c(0.25, 0.25, 0.25, 0.25))
+  }
+  # 
+  plot(
+    im,
+    axes = axis,
+    xlab = if (axis) "X Coordinate (Pixel)" else "",
+    ylab = if (axis) "Y Coordinate (Pixel)" else "",
+    main = "",
+    xlim = c(0, dim(im)[1]),
+    ylim = c(0, dim(im)[2])
+  )
+  # 
+  
+  
+  ## ---------------------------------------------------------
+  ## 5. plot row-middle lines (corrected for crop)
+  ## ---------------------------------------------------------
+  img_width <- dim(im)[1]
+  x0 <- img_width / 2
+  
+  for (i in seq_len(nrow(row_info_sub))) {
+    slope <- row_info_sub$Plot_slope[i]
     
-    for (j in 1:3) {  # Plot lines for Row_middle_1, Row_middle_2, Row_middle_3
-      intercept <- row_info[[paste0("Row_middle_", j)]][i]
+    for (j in 1:3) {
+      intercept <- row_info_sub[[paste0("Row_middle_", j)]][i]
       
-      # Draw the line: y = slope * x + intercept
-      abline(a = intercept, b = slope, col = "black", lwd = 5, lty=4)
+      ## shift intercept due to vertical crop
+      a_corr <- (intercept - crop_bottom) - slope * x0
+      
+      abline(
+        a   = a_corr,
+        b   = slope,
+        col = "white",
+        lwd = 5,
+        lty = 4
+      )
     }
   }
   
-  # Iterate over all rows in the dataframe
-  for (i in 1:nrow(df)) {
-    rect(xleft = df$x_coord[i], ybottom = df$y_coord[i],
-         xright = df$x_coord[i] + 126, ytop = df$y_coord[i] + 126,
-         col = NA, border = df$color[i], lwd = 3)
-    text(x = df$x_coord[i] + 60, y = df$y_coord[i] + 160, 
-         labels = df$TitelNr[i], col = df$color[i], cex = 1, lwd = 2)
+  ## ---------------------------------------------------------
+  ## 6. plot cut-out rectangles (shift y by crop)
+  ## ---------------------------------------------------------
+  for (i in seq_len(nrow(df))) {
+    
+    y0 <- df$y_coord[i] - crop_bottom
+    
+    ## skip boxes outside cropped region
+    if (y0 < 0 || y0 > dim(im)[2]) next
+    
+    rect(
+      xleft   = df$x_coord[i],
+      ybottom = y0,
+      xright  = df$x_coord[i] + 126,
+      ytop    = y0 + 126,
+      col     = NA,
+      border  = df$color[i],
+      lwd     = 4
+    )
+    
+    text(
+      x      = df$x_coord[i] + 60,
+      y      = y0 + 160,
+      labels = df$TitelNr[i],
+      col    = df$color[i],
+      cex    = 1,
+      lwd    = 2
+    )
   }
   
-  title(xlab = "X Coordinate (Pixel)", ylab = "Y Coordinate (Pixel)")
-  
+  ## ---------------------------------------------------------
+  ## 7. legend
+  ## ---------------------------------------------------------
   if (legend) {
-    # Add a legend for the rectangle color
-    legend("topright",  
-           legend = c("Selected", "Discarded", "Soybean"),  
-           border = c("blue3", "darkred", "#DDCC77"), 
-           fill = "white",
-           box.lty = 0,  
-           box.lwd = 1,  
-           bg = "white",  
-           cex = 1.6,  
-           horiz = FALSE)
+    if (uniqueN(df$color) == 3) {
+      legend(
+        "topright",
+        legend = c("Soybean", "Weed", "Discarded"),
+        border = c("#FF00FF","#00BFFF", "#FFD700"),
+        fill   = "white",
+        box.lty = 0,
+        cex     = 1.6
+      )
+    } else {
+      legend(
+        "topright",
+        legend = c("Soybean", "Weed"),
+        border = c("#FF00FF","#00BFFF"),
+        fill   = "white",
+        box.lty = 0,
+        cex     = 1.6
+      )
+    }
   }
   
-  # Save the image
   dev.off()
+  par(old_par)
+  
 }
 
 ############
@@ -2243,19 +2347,21 @@ draw_and_plot_middle <- function(df, row_info, legend = TRUE) {
 library(png)
 library(grid)
 library(gridExtra)
+library(magick)
 
-make_plots_ncol <- function(png_files_exclude, ncol=2, save=F, Specie=NA, Title=c(1:nrow(png_files_exclude))){
+make_plots_ncol <- function(png_files_exclude, ncol=2, save=F, Specie=NA, Fontsize=14, Title=c(1:nrow(png_files_exclude))){
     png_files_exclude <- subset(png_files_exclude, Species==Specie)
    
     plots <- lapply(seq_along(png_files_exclude$File), function(i) {
     file <- png_files_exclude$File[i]
-    img <- readPNG(file)
+    img  <- image_read(file)
+    img <- image_resize(img, "128x128!")
     Title <- Title[i]
     
     # Create a grid object with the image and the text annotation
     grid_obj <- grid.arrange(
       rasterGrob(img, interpolate = TRUE),
-      top = textGrob(Title, gp=gpar(col=png_files_exclude$color[i], fontsize=14), just=c("center", "center")),
+      top = textGrob(Title, gp=gpar(col=png_files_exclude$color[i], fontsize=Fontsize), just=c("center", "center")),
       ncol = 1
     )
     
