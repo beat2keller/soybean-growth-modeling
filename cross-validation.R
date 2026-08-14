@@ -31,7 +31,6 @@ envs <- unique(df$year_loc)
 df$row_id <- seq_len(nrow(df))
 df_filtered <- as.data.frame(df)
 
-
 ## ----------------------------
 ## CV function
 ## ----------------------------
@@ -66,7 +65,7 @@ cv_results <- lapply(envs, function(env_train){
     nlsList(
       value ~ SSlogis(time_since_sowing, Asym, xmid, scal),
       data = train_g,
-      control = list(maxiter = 1000)
+      control = list(maxIter = 1500)
     ),
     error = function(e) e
   )
@@ -77,7 +76,12 @@ cv_results <- lapply(envs, function(env_train){
   
   ## base model
   base_model <- tryCatch(
-    nlme(fm_train, random = Asym + xmid ~ 1, weights = varPower()),
+    nlme(fm_train,
+         random  = Asym + xmid ~ 1,
+         weights = varPower(),
+         control = nlmeControl(maxIter = 200, msMaxIter = 200,
+                               pnlsMaxIter = 20, tolerance = 1e-5,
+                               pnlsTol = 1e-2, opt = "nlminb")),
     error = function(e) e
   )
   if(inherits(base_model, "error")){
@@ -299,7 +303,7 @@ ggFit <- ggplot(ts_df, aes(x = time_since_sowing, y = value,
   geom_point(size = 0.5, alpha = 0.6) +
   geom_line(data = subset(ts_df, type != "Observed"),
             size = 0.4, alpha = 0.8) +
-  facet_wrap(. ~ year_loc, strip.position = "top", ncol = 4) +
+  facet_wrap(. ~ year_loc, strip.position = "top", ncol = 5) +
   scale_color_manual(values = tol3qualitative) +
   scale_shape_manual(   values = c("Observed" = 1, "Main model" = 16, "Base model" = 17)) +
   scale_linetype_manual(values = c("Observed" = 0, "Main model" = 1,  "Base model" = 3)) +
