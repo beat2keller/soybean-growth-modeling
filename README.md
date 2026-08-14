@@ -2,11 +2,14 @@
 
 Non-linear mixed-effects modeling of soybean canopy cover across breeding lines and years, integrating weather covariates to analyze G×E interactions and predict canopy trajectories in untested environments.
 
+**Preprint:** [https://doi.org/10.22541/au.177088529.95951774/v1](https://doi.org/10.22541/au.177088529.95951774/v1)
+
 ## Repository structure
 
 ```
 .
 ├── data/                     # Raw & processed data (see Data)
+├── figures/                  # Example output figures
 ├── functions/                # Reusable R helpers
 ├── model/                    # Saved non-linear mixed model
 ├── segmentation/             # (Optional) Python canopy/weed segmentation
@@ -58,12 +61,12 @@ conda activate <env-name-from-requirements.yml>
 
 ### Raw image data and training set creation (optional)
 
-Public example data for 2021, site SB015, camera RGB1 is available here:
+Data for all years is available from the associated data publication and on GitLab:
 
-- `data/2021/SB015/RGB1` on GitLab
-  (https://gitlab.ethz.ch/crop_phenotyping/fip-soybean-canopycover)
+- **Data publication:** [https://www.nature.com/articles/s41597-026-06663-z](https://www.nature.com/articles/s41597-026-06663-z)
+- **GitLab:** `data/<year>/<site>/<camera>` at [https://gitlab.ethz.ch/crop_phenotyping/fip-soybean-canopycover](https://gitlab.ethz.ch/crop_phenotyping/fip-soybean-canopycover)
 
-Download those images into your preferred folder and point the segmentation scripts to that path.
+Download images into your preferred folder and point the segmentation scripts to that path.
 
 ```bash
 # 1) Identify rows and in-row space to generate labeled cut-out images of soybean and weeds for training
@@ -89,6 +92,10 @@ Exported cover metrics can then be used by `data_pipeline_soybeans.R`.
 ![Validation panel](https://github.com/beat2keller/soybean-growth-modeling/blob/main/segmentation/annotation-validation/labels/validation_panel.png?raw=true)
 
 ## Quick start for non-linear mixed modeling
+
+Example output — canopy cover dynamics across all trials:
+
+![Green canopy cover dynamics across all trials](figures/Green_conopy_cover_dynamics_all_trials.png)
 
 Run these with `Rscript` from the repo root, or source them in an R session.
 
