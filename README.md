@@ -95,7 +95,7 @@ Exported cover metrics can then be used by `data_pipeline_soybeans.R`.
 
 Example output — canopy cover dynamics across all trials:
 
-![Green canopy cover dynamics across all trials](Green_conopy_cover_dynamics_all_trials.png)
+![Green canopy cover dynamics across all trials](https://github.com/beat2keller/soybean-growth-modeling/blob/main/Green_conopy_cover_dynamics_all_trials.png?raw=true)
 
 Run these with `Rscript` from the repo root, or source them in an R session.
 
